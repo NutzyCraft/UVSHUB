@@ -121,6 +121,15 @@
 .footer__social { color: var(--ink-4); transition: color var(--t-fast); }
 .footer__social:hover { color: var(--white); }
 
+.footer__author-link {
+  color: var(--white);
+  text-decoration: none;
+  transition: color var(--t-fast);
+}
+.footer__author-link:hover {
+  color: var(--accent);
+}
+
 @media (max-width: 900px) {
   .footer__nav { grid-template-columns: 1fr 1fr; gap: 40px; }
   .footer__brand { grid-column: span 2; max-width: none; }

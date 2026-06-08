@@ -26,7 +26,7 @@ function Footer() {
               <span style={{ fontFamily: 'var(--mono)', fontSize: '14px', fontWeight: 600, color: 'var(--white)', letterSpacing: '0.1em' }}>UVSHUB</span>
             </Link>
             <p className="footer__brand-text">
-              An advanced spatial learning platform designed for the builders of tomorrow.
+              An advanced learning platform designed for the builders of tomorrow.
             </p>
           </div>
 
@@ -61,7 +61,7 @@ function Footer() {
         </div>
 
         <div className="footer__bottom">
-          <div>© 2028 UVSHUB. ALL SYSTEMS NOMINAL.</div>
+          <div>© 2026 UVSHUB || Developed by <a href="https://www.nutzycraft.com/" target="_blank" rel="noopener noreferrer" className="footer__author-link">NutzyCraft</a>. All Rights Reserved.</div>
           <div className="footer__socials">
             <a href="#" className="footer__social" aria-label="X (Twitter)">X</a>
             <a href="#" className="footer__social" aria-label="GitHub">GH</a>
