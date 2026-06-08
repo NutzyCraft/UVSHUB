@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { LogoMark } from '../../components/Navbar';
-import './Courses.css';
+import './CoursesShowcase.css'; // We can reuse the showcase styles or standard styles
 
-function Instructors() {
+function InstructorsShowcase() {
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,27 +27,15 @@ function Instructors() {
   }, []);
 
   return (
-    <div className="courses-page">
-      {/* Navbar Minimal */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', zIndex: 100, background: 'rgba(3,3,4,0.6)', backdropFilter: 'blur(24px)', borderBottom: '1px solid var(--border)' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-          <div style={{ width: '32px', height: '32px', background: 'var(--white)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LogoMark dark={false} /></div>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: '16px', fontWeight: 600, color: 'var(--white)', letterSpacing: '0.1em' }}>UVSHUB</span>
-        </Link>
-        <Link to="/student/login" className="btn btn-outline" style={{ fontFamily: 'var(--mono)', fontSize: '12px', padding: '10px 20px' }}>Dashboard</Link>
-      </nav>
+    <section id="instructors" className="courses-showcase" style={{ padding: '120px 40px', background: 'var(--bg)' }}>
+      <div className="courses-showcase__inner" style={{ maxWidth: '1280px', margin: '0 auto' }}>
+        <header className="courses-showcase__header">
+          <h2 className="courses-showcase__title">Meet the <em>Architects.</em></h2>
+          <p className="courses-showcase__desc" style={{ color: 'var(--ink-3)', fontSize: '18px', maxWidth: '600px', margin: '16px auto 0' }}>
+            The elite operatives constructing your knowledge matrices.
+          </p>
+        </header>
 
-      {/* Hero */}
-      <header className="courses-hero">
-        <div className="courses-hero__inner">
-          <div className="tag" style={{ background: 'var(--blue-light)', borderColor: 'var(--blue)', color: 'var(--blue)' }}>PERSONNEL DIRECTORY</div>
-          <h1>Meet the <em>Architects.</em></h1>
-          <p>The elite operatives constructing your knowledge matrices.</p>
-        </div>
-      </header>
-
-      {/* Body */}
-      <div className="courses-body" style={{ display: 'block', padding: '0 40px', maxWidth: '1280px', margin: '0 auto', paddingBottom: '120px' }}>
         {loading ? (
             <div style={{ padding: '80px', textAlign: 'center', fontFamily: 'var(--mono)', fontSize: '14px', color: 'var(--ink-4)' }}>INITIALIZING DIRECTORY...</div>
         ) : error ? (
@@ -60,7 +46,7 @@ function Instructors() {
               <div key={inst.id} style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ width: '100%', height: '240px', background: 'var(--surface-3)', position: 'relative' }}>
                   {inst.Image ? (
-                    <img src={inst.Image} alt={inst.Name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={inst.Image} alt={inst.Name} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '64px', color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>{inst.Name.charAt(0)}</div>
                   )}
@@ -74,8 +60,8 @@ function Instructors() {
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
-export default Instructors;
+export default InstructorsShowcase;

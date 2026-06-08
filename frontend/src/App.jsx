@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Landing      from './pages/home/Landing';
 import Courses      from './pages/home/Courses';
-import Instructors  from './pages/home/Instructors';
 import CourseDetail from './pages/home/CourseDetail';
 import StudentLogin from './pages/student/StudentLogin';
 import StudentRegister from './pages/student/StudentRegister';
@@ -16,7 +15,6 @@ function App() {
       <Routes>
         <Route path="/"            element={<Landing />}      />
         <Route path="/courses"     element={<Courses />}      />
-        <Route path="/instructors" element={<Instructors />}  />
         <Route path="/courses/:id" element={<CourseDetail />} />
         <Route path="/student/login"    element={<StudentLogin />} />
         <Route path="/student/register" element={<StudentRegister />} />
