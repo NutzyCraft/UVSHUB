@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogoMark } from '../../components/Navbar';
-import '../home/Auth.css';
+import './Auth.css';
 
 const StudentLogin = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -49,10 +49,15 @@ const StudentLogin = () => {
     <div className="auth-page">
       <div className="auth-panel">
         <div className="auth-panel__inner">
-          <Link to="/" className="auth-logo">
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--ink-3)', fontSize: '12px', fontFamily: 'var(--mono)', textDecoration: 'none', marginBottom: '32px', letterSpacing: '0.1em', textTransform: 'uppercase', transition: 'color var(--t-fast)' }} onMouseOver={e => e.currentTarget.style.color='var(--white)'} onMouseOut={e => e.currentTarget.style.color='var(--ink-3)'}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            RETURN TO BASE
+          </Link>
+
+          <div className="auth-logo">
             <div className="auth-logo-mark"><LogoMark dark={false} /></div>
             <span className="auth-logo-text">UVSHUB</span>
-          </Link>
+          </div>
 
           <h1 className="auth-title">Terminal Login</h1>
           <p className="auth-sub">Access your learning matrix. Enter your credentials below.</p>
@@ -111,19 +116,6 @@ const StudentLogin = () => {
         </div>
       </div>
 
-      <div className="auth-visual">
-        <div className="auth-quote-card">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
-          <div className="auth-quote">"The interface is so deep and intuitive, it feels less like learning and more like downloading knowledge directly into my brain."</div>
-          <div className="auth-author">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80" alt="Aisha Patel" />
-            <div>
-              <div className="auth-author-name">Aisha Patel</div>
-              <div className="auth-author-role">Frontend Operative, Meta</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
