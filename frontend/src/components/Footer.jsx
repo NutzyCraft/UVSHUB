@@ -46,7 +46,7 @@ function Footer() {
               <li><a href="#approach" className="footer__link">Architecture</a></li>
               <li><a href="#instructors" className="footer__link">Operatives</a></li>
               <li><a href="#pricing" className="footer__link">Licensing</a></li>
-              <li><Link to="/login" className="footer__link">Terminal Login</Link></li>
+              <li><Link to="/student/login" className="footer__link">Terminal Login</Link></li>
             </ul>
           </div>
 

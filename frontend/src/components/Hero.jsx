@@ -29,7 +29,7 @@ function Hero() {
 
         <div className="hero__actions" style={{ display: 'flex', gap: '16px' }}>
           <Magnetic strength={0.3}>
-            <Link to="/register" id="hero-cta-primary" className="btn btn-primary btn-lg">
+            <Link to="/student/register" id="hero-cta-primary" className="btn btn-primary btn-lg">
               Initialize Access
             </Link>
           </Magnetic>
