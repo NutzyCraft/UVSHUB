@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './AdminDashboard.css';
-
+import { useNavigate, Link } from 'react-router-dom';
+import { LogoMark } from '../../components/Navbar';
+import '../Dashboard.css';
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('students');
   const [students, setStudents] = useState([]);
@@ -337,517 +337,392 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-wrapper">
-        <header className="admin-header">
-          <div>
-            <h1 className="admin-title">Admin Dashboard</h1>
-            <p className="admin-subtitle">Manage registry operations, course inventory, and financial approvals.</p>
+    <div className="dashboard">
+      <aside className="dash-sidebar">
+        <Link to="/" className="dash-logo">
+          <div className="dash-logo-mark"><LogoMark dark={false} /></div>
+          <span className="dash-logo-text">UVSHUB</span>
+        </Link>
+        <nav className="dash-nav">
+          {[
+            { id: 'students', label: 'Students' },
+            { id: 'subjects', label: 'Subjects' },
+            { id: 'courses', label: 'Add Course' },
+            { id: 'payments', label: 'Approve Payments' },
+            { id: 'history', label: 'Payment History' }
+          ].map(t => (
+            <button
+              key={t.id}
+              className={`dash-nav-item${activeTab === t.id ? ' dash-nav-item--active' : ''}`}
+              onClick={() => { setActiveTab(t.id); setError(''); setSuccess(''); }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <div className="dash-user" style={{ cursor: 'pointer' }} onClick={() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          navigate('/student/login');
+        }}>
+          <div className="dash-user-av" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-3)', fontSize: '18px', fontWeight: 'bold' }}>AD</div>
+          <div className="dash-user-info">
+            <span className="dash-user-name">Logout</span>
+            <span className="dash-user-plan">Admin</span>
           </div>
-          <button className="logout-btn" onClick={() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/student/login');
-          }}>
-            Logout
-          </button>
+        </div>
+      </aside>
+
+      <main className="dash-main">
+        <header className="dash-header">
+          <div className="dash-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Global search..." />
+          </div>
+          <div className="dash-header-actions">
+            <div className="dash-bell">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+          </div>
         </header>
 
-        {error && <div className="error-message" style={{ margin: '0' }}>{error}</div>}
-        {success && <div className="success-message" style={{ margin: '0' }}>{success}</div>}
+        <div className="dash-content">
+          {error && <div className="status-banner status-banner--error" style={{ marginBottom: '24px', padding: '16px', background: 'rgba(224, 45, 60, 0.1)', color: '#FF5A65', border: '1px solid rgba(224, 45, 60, 0.2)', borderRadius: '8px' }}>{error}</div>}
+          {success && <div className="status-banner status-banner--success" style={{ marginBottom: '24px', padding: '16px', background: 'rgba(45, 212, 191, 0.1)', color: 'var(--accent)', border: '1px solid rgba(45, 212, 191, 0.2)', borderRadius: '8px' }}>{success}</div>}
+          {loading && <div className="status-banner" style={{ marginBottom: '24px', padding: '16px', color: 'var(--ink-2)' }}>Refreshing system data...</div>}
 
-        <nav className="admin-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'students' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('students'); setError(''); setSuccess(''); }}
-          >
-            Students
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'subjects' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('subjects'); setError(''); setSuccess(''); }}
-          >
-            Subjects
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'courses' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('courses'); setError(''); setSuccess(''); }}
-          >
-            Add Course
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('payments'); setError(''); setSuccess(''); }}
-          >
-            Approve Payments
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('history'); setError(''); setSuccess(''); }}
-          >
-            Payment History
-          </button>
-        </nav>
-
-        <main className="tab-content">
-          {loading && <p>Loading data...</p>}
-
-          {!loading && activeTab === 'students' && (
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>WhatsApp</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((student) => (
-                    <tr key={student.id}>
-                      <td>#{student.Student_ID}</td>
-                      <td>{student.Name}</td>
-                      <td>{student.Email}</td>
-                      <td>{student.Watsapp_Number}</td>
-                      <td>
-                        <button className="action-btn btn-details" onClick={() => viewStudentDetails(student.id)}>
-                          View Profile
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {students.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan="5" style={{ textAlign: 'center' }}>No registered students found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          {activeTab === 'students' && !loading && (
+            <>
+              <h1 className="dash-title">Student Registry</h1>
+              <p className="dash-sub">View and manage enrolled operatives.</p>
+              <div className="dash-panel">
+                <div className="dash-panel-body" style={{ overflowX: 'auto', padding: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--ink-3)' }}>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>ID</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Name</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Email</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>WhatsApp</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((student) => (
+                        <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '16px', color: 'var(--accent)', fontFamily: 'var(--mono)' }}>#{student.Student_ID}</td>
+                          <td style={{ padding: '16px', color: 'var(--white)' }}>{student.Name}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{student.Email}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{student.Watsapp_Number}</td>
+                          <td style={{ padding: '16px' }}>
+                            <button onClick={() => viewStudentDetails(student.id)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--accent)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+                              PROFILE
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {students.length === 0 && (
+                        <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>No registered operatives found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
 
-          {!loading && activeTab === 'subjects' && (
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Subject ID</th>
-                    <th>Name</th>
-                    <th>Instructor</th>
-                    <th>Grade</th>
-                    <th>Medium</th>
-                    <th>Price</th>
-                    <th>Meeting Link</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subjects.map((subject) => (
-                    <tr key={subject.id}>
-                      <td>#{subject.id}</td>
-                      <td>{subject.Name}</td>
-                      <td>{subject.InstructorName || subject.Instructor || subject.instructor?.name || 'N/A'}</td>
-                      <td>{subject.Grade}</td>
-                      <td>{subject.Medium}</td>
-                      <td>Rs. {subject.Price}</td>
-                      <td>
-                        {subject.MeetingLink ? (
-                          <a href={subject.MeetingLink} target="_blank" rel="noreferrer">
-                            Open Link
-                          </a>
-                        ) : (
-                          'N/A'
-                        )}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="action-btn btn-edit" onClick={() => openSubjectEditor(subject)}>
-                            Edit
-                          </button>
-                          <button className="action-btn btn-delete" onClick={() => handleDeleteSubject(subject.id)}>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {subjects.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan="8" style={{ textAlign: 'center' }}>No subjects created yet.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          {activeTab === 'subjects' && !loading && (
+            <>
+              <h1 className="dash-title">Subject Inventory</h1>
+              <p className="dash-sub">Manage available modules and instructions.</p>
+              <div className="dash-panel">
+                <div className="dash-panel-body" style={{ overflowX: 'auto', padding: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--ink-3)' }}>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>ID</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Name</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Instructor</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Grade/Medium</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Price</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Meeting</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subjects.map((subject) => (
+                        <tr key={subject.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '16px', color: 'var(--accent)', fontFamily: 'var(--mono)' }}>#{subject.id}</td>
+                          <td style={{ padding: '16px', color: 'var(--white)' }}>{subject.Name}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{subject.InstructorName || subject.Instructor || subject.instructor?.name || 'N/A'}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>G{subject.Grade} / {subject.Medium}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>Rs. {subject.Price}</td>
+                          <td style={{ padding: '16px' }}>
+                            {subject.MeetingLink ? <a href={subject.MeetingLink} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>LINK</a> : <span style={{ color: 'var(--ink-4)' }}>N/A</span>}
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button onClick={() => openSubjectEditor(subject)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--white)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>EDIT</button>
+                              <button onClick={() => handleDeleteSubject(subject.id)} style={{ background: 'transparent', border: '1px solid #FF5A65', color: '#FF5A65', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>DEL</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {subjects.length === 0 && (
+                        <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>No subjects found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
 
           {activeTab === 'courses' && (
-            <form className="admin-form" onSubmit={handleCreateCourse}>
-              <h2>Create New Subject</h2>
-              <div className="form-row">
-                <div className="admin-form-group">
-                  <label htmlFor="courseName">Course/Subject Name</label>
-                  <input
-                    type="text"
-                    id="courseName"
-                    value={courseForm.name}
-                    onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })}
-                    required
-                    placeholder="e.g. Physics"
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label htmlFor="courseInstructor">Instructor</label>
-                  <input
-                    type="text"
-                    id="courseInstructor"
-                    value={courseForm.instructor}
-                    onChange={(e) => setCourseForm({ ...courseForm, instructor: e.target.value })}
-                    required
-                    placeholder="e.g. Mr. Perera"
-                  />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="admin-form-group">
-                  <label htmlFor="courseGrade">Grade</label>
-                  <input
-                    type="number"
-                    step="1"
-                    id="courseGrade"
-                    value={courseForm.grade}
-                    onChange={(e) => setCourseForm({ ...courseForm, grade: e.target.value })}
-                    required
-                    placeholder="e.g. 13"
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label htmlFor="coursePrice">Price (Monthly Fee)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    id="coursePrice"
-                    value={courseForm.price}
-                    onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })}
-                    required
-                    placeholder="e.g. 3500.00"
-                  />
+            <>
+              <h1 className="dash-title">Create New Module</h1>
+              <p className="dash-sub">Initialize a new subject parameter.</p>
+              <div className="dash-panel" style={{ maxWidth: '800px' }}>
+                <div className="dash-panel-body">
+                  <form onSubmit={handleCreateCourse} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subject Name</label>
+                      <input type="text" value={courseForm.name} onChange={e => setCourseForm({...courseForm, name: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required placeholder="e.g. Physics" />
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Instructor</label>
+                      <input type="text" value={courseForm.instructor} onChange={e => setCourseForm({...courseForm, instructor: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required placeholder="e.g. Mr. Perera" />
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Grade</label>
+                      <input type="number" step="1" value={courseForm.grade} onChange={e => setCourseForm({...courseForm, grade: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required placeholder="e.g. 13" />
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Price</label>
+                      <input type="number" step="0.01" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required placeholder="e.g. 3500" />
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Medium</label>
+                      <select value={courseForm.medium} onChange={e => setCourseForm({...courseForm, medium: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required>
+                        <option value="" style={{ color: '#000' }}>Select Medium</option>
+                        <option value="Sinhala" style={{ color: '#000' }}>Sinhala</option>
+                        <option value="English" style={{ color: '#000' }}>English</option>
+                        <option value="Tamil" style={{ color: '#000' }}>Tamil</option>
+                      </select>
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Meeting Link</label>
+                      <input type="url" value={courseForm.meetingLink} onChange={e => setCourseForm({...courseForm, meetingLink: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} placeholder="https://meet..." />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                      <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '14px 32px' }}>{loading ? 'CREATING...' : 'INITIALIZE MODULE'}</button>
+                    </div>
+                  </form>
                 </div>
               </div>
-              <div className="form-row">
-                <div className="admin-form-group">
-                  <label htmlFor="courseMedium">Medium</label>
-                  <select
-                    id="courseMedium"
-                    value={courseForm.medium}
-                    onChange={(e) => setCourseForm({ ...courseForm, medium: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Medium</option>
-                    <option value="Sinhala">Sinhala</option>
-                    <option value="English">English</option>
-                    <option value="Tamil">Tamil</option>
-                  </select>
-                </div>
-                <div className="admin-form-group">
-                  <label htmlFor="courseMeeting">Meeting Link</label>
-                  <input
-                    type="url"
-                    id="courseMeeting"
-                    value={courseForm.meetingLink}
-                    onChange={(e) => setCourseForm({ ...courseForm, meetingLink: e.target.value })}
-                    placeholder="https://meet.example.com/room"
-                    required
-                  />
-                </div>
-              </div>
-              <button type="submit" className="submit-btn" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Course'}
-              </button>
-            </form>
+            </>
           )}
 
-          {!loading && activeTab === 'payments' && (
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Payment ID</th>
-                    <th>Student ID</th>
-                    <th>Subject</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td>#{payment.id}</td>
-                      <td>#{payment.Student_ID}</td>
-                      <td>{payment.Subject}</td>
-                      <td>Rs. {payment.Amount}</td>
-                      <td>{payment.Method}</td>
-                      <td>{payment.Status || 'Pending'}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          {payment.Slip_Url ? (
-                            <button
-                              className="action-btn btn-details"
-                              onClick={() => setViewingSlipUrl(payment.Slip_Url)}
-                            >
-                              View Receipt
-                            </button>
-                          ) : (
-                            <span style={{ color: 'rgba(255,255,255,0.4)', padding: '0.5rem' }}>No Slip</span>
-                          )}
-                          <button className="action-btn btn-approve" onClick={() => handleApprovePayment(payment.id)}>
-                            Approve & Enroll
-                          </button>
-                          <button className="action-btn btn-delete" onClick={() => handleRejectPayment(payment.id)}>
-                            Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {payments.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan="7" style={{ textAlign: 'center' }}>No pending approvals.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          {activeTab === 'payments' && !loading && (
+            <>
+              <h1 className="dash-title">Financial Authorizations</h1>
+              <p className="dash-sub">Review and approve pending transactions.</p>
+              <div className="dash-panel">
+                <div className="dash-panel-body" style={{ overflowX: 'auto', padding: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--ink-3)' }}>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Payment ID</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Student ID</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Subject</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Amount</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Method</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Status</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map(payment => (
+                        <tr key={payment.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '16px', color: 'var(--accent)', fontFamily: 'var(--mono)' }}>#{payment.id}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)', fontFamily: 'var(--mono)' }}>#{payment.Student_ID}</td>
+                          <td style={{ padding: '16px', color: 'var(--white)' }}>{payment.Subject}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>Rs. {payment.Amount}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{payment.Method}</td>
+                          <td style={{ padding: '16px', color: '#f59e0b' }}>{payment.Status || 'Pending'}</td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {payment.Slip_Url ? (
+                                <button onClick={() => setViewingSlipUrl(payment.Slip_Url)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--white)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>RECEIPT</button>
+                              ) : <span style={{ color: 'var(--ink-4)', padding: '6px 12px', fontSize: '12px' }}>NO SLIP</span>}
+                              <button onClick={() => handleApprovePayment(payment.id)} style={{ background: 'var(--accent)', border: 'none', color: '#0a0a0c', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>APPROVE</button>
+                              <button onClick={() => handleRejectPayment(payment.id)} style={{ background: 'transparent', border: '1px solid #FF5A65', color: '#FF5A65', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>REJECT</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {payments.length === 0 && (
+                        <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>No pending approvals.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
 
-          {!loading && activeTab === 'history' && (
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Payment ID</th>
-                    <th>Student ID</th>
-                    <th>Subject</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Status</th>
-                    <th>Receipt</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paymentHistory.map((payment) => (
-                    <tr key={payment.id}>
-                      <td>#{payment.id}</td>
-                      <td>#{payment.Student_ID}</td>
-                      <td>{payment.Subject}</td>
-                      <td>Rs. {payment.Amount}</td>
-                      <td>{payment.Method}</td>
-                      <td>{payment.Status || 'Pending'}</td>
-                      <td>
-                        {payment.Slip_Url ? (
-                          <button
-                            className="action-btn btn-details"
-                            onClick={() => setViewingSlipUrl(payment.Slip_Url)}
-                          >
-                            View Receipt
-                          </button>
-                        ) : (
-                          'N/A'
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {paymentHistory.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan="7" style={{ textAlign: 'center' }}>No payment history found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          {activeTab === 'history' && !loading && (
+            <>
+              <h1 className="dash-title">Transaction Ledger</h1>
+              <p className="dash-sub">Historical record of all payment operations.</p>
+              <div className="dash-panel">
+                <div className="dash-panel-body" style={{ overflowX: 'auto', padding: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--ink-3)' }}>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Payment ID</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Student ID</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Subject</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Amount</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Method</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Status</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Receipt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentHistory.map(payment => (
+                        <tr key={payment.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '16px', color: 'var(--accent)', fontFamily: 'var(--mono)' }}>#{payment.id}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)', fontFamily: 'var(--mono)' }}>#{payment.Student_ID}</td>
+                          <td style={{ padding: '16px', color: 'var(--white)' }}>{payment.Subject}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>Rs. {payment.Amount}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{payment.Method}</td>
+                          <td style={{ padding: '16px', color: payment.Status === 'Approved' ? 'var(--accent)' : payment.Status === 'Rejected' ? '#FF5A65' : '#f59e0b' }}>{payment.Status || 'Pending'}</td>
+                          <td style={{ padding: '16px' }}>
+                            {payment.Slip_Url ? (
+                              <button onClick={() => setViewingSlipUrl(payment.Slip_Url)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--white)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>RECEIPT</button>
+                            ) : <span style={{ color: 'var(--ink-4)' }}>N/A</span>}
+                          </td>
+                        </tr>
+                      ))}
+                      {paymentHistory.length === 0 && (
+                        <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>No payment history.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
-        </main>
-      </div>
+
+        </div>
+      </main>
 
       {/* Student Details Modal */}
       {selectedStudent && (
-        <div className="modal-overlay" onClick={() => setSelectedStudent(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
-              <h3>Student Details</h3>
-              <button className="close-btn" onClick={() => setSelectedStudent(null)}>&times;</button>
-            </header>
-            <div className="modal-body">
-              <div className="modal-row">
-                <span className="modal-label">Name:</span>
-                <span className="modal-value">{selectedStudent.Name}</span>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setSelectedStudent(null)}>
+          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '500px', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
+            <div className="dash-panel-head">
+              <span className="dash-panel-title">Operative Details</span>
+              <button onClick={() => setSelectedStudent(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
+            </div>
+            <div className="dash-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px', color: 'var(--ink-2)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>Name:</span> <span style={{ color: 'var(--white)' }}>{selectedStudent.Name}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">Student ID:</span>
-                <span className="modal-value">#{selectedStudent.Student_ID}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>ID:</span> <span style={{ color: 'var(--accent)', fontFamily: 'var(--mono)' }}>#{selectedStudent.Student_ID}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">Email:</span>
-                <span className="modal-value">{selectedStudent.Email}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>Email:</span> <span style={{ color: 'var(--white)' }}>{selectedStudent.Email}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">WhatsApp:</span>
-                <span className="modal-value">{selectedStudent.Watsapp_Number}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>WhatsApp:</span> <span style={{ color: 'var(--white)' }}>{selectedStudent.Watsapp_Number}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">NIC:</span>
-                <span className="modal-value">{selectedStudent.NIC || 'N/A'}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>NIC:</span> <span style={{ color: 'var(--white)' }}>{selectedStudent.NIC || 'N/A'}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">Address:</span>
-                <span className="modal-value">{selectedStudent.Address}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>Address:</span> <span style={{ color: 'var(--white)' }}>{selectedStudent.Address}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">Guardian's Name:</span>
-                <span className="modal-value">{selectedStudent.Gurdian_s_Name}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>Guardian:</span> <span style={{ color: 'var(--white)' }}>{selectedStudent.Gurdian_s_Name}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">Guardian's Number:</span>
-                <span className="modal-value">{selectedStudent.Gurdians_Number}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>Guardian No:</span> <span style={{ color: 'var(--white)' }}>{selectedStudent.Gurdians_Number}</span>
               </div>
-              <div className="modal-row">
-                <span className="modal-label">Enrollments:</span>
-                <span className="modal-value">
-                  {selectedStudent.enrolledCourses && selectedStudent.enrolledCourses.length > 0
-                    ? selectedStudent.enrolledCourses.map(c => c.Subject_Name).join(', ')
-                    : 'None'}
-                </span>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+                <span style={{ color: 'var(--ink-3)' }}>Enrollments:</span> 
+                <span style={{ color: 'var(--white)' }}>{selectedStudent.enrolledCourses?.length ? selectedStudent.enrolledCourses.map(c => c.Subject_Name).join(', ') : 'None'}</span>
               </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Edit Subject Modal */}
       {editingSubject && (
-        <div className="modal-overlay" onClick={() => setEditingSubject(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
-              <h3>Edit Subject</h3>
-              <button className="close-btn" onClick={() => setEditingSubject(null)}>&times;</button>
-            </header>
-            <form className="edit-subject-form" onSubmit={handleUpdateSubject}>
-              <div className="form-row">
-                <div className="admin-form-group">
-                  <label htmlFor="editSubjectName">Subject Name</label>
-                  <input
-                    id="editSubjectName"
-                    name="name"
-                    type="text"
-                    value={editingSubject.name}
-                    onChange={handleSubjectEditChange}
-                    required
-                  />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEditingSubject(null)}>
+          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '600px', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
+            <div className="dash-panel-head">
+              <span className="dash-panel-title">Edit Subject Parameter</span>
+              <button onClick={() => setEditingSubject(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
+            </div>
+            <div className="dash-panel-body">
+              <form onSubmit={handleUpdateSubject} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subject Name</label>
+                  <input type="text" name="name" value={editingSubject.name} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required />
                 </div>
-                <div className="admin-form-group">
-                  <label htmlFor="editSubjectInstructor">Instructor</label>
-                  <input
-                    id="editSubjectInstructor"
-                    name="instructor"
-                    type="text"
-                    value={editingSubject.instructor}
-                    onChange={handleSubjectEditChange}
-                    required
-                  />
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Instructor</label>
+                  <input type="text" name="instructor" value={editingSubject.instructor} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required />
                 </div>
-              </div>
-              <div className="form-row">
-                <div className="admin-form-group">
-                  <label htmlFor="editSubjectGrade">Grade</label>
-                  <input
-                    id="editSubjectGrade"
-                    name="grade"
-                    type="number"
-                    step="1"
-                    value={editingSubject.grade}
-                    onChange={handleSubjectEditChange}
-                    required
-                  />
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Grade</label>
+                  <input type="number" step="1" name="grade" value={editingSubject.grade} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required />
                 </div>
-                <div className="admin-form-group">
-                  <label htmlFor="editSubjectPrice">Price</label>
-                  <input
-                    id="editSubjectPrice"
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    value={editingSubject.price}
-                    onChange={handleSubjectEditChange}
-                    required
-                  />
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Price</label>
+                  <input type="number" step="0.01" name="price" value={editingSubject.price} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required />
                 </div>
-                <div className="admin-form-group">
-                  <label htmlFor="editSubjectMedium">Medium</label>
-                  <select
-                    id="editSubjectMedium"
-                    name="medium"
-                    value={editingSubject.medium}
-                    onChange={handleSubjectEditChange}
-                    required
-                  >
-                    <option value="">Select Medium</option>
-                    <option value="Sinhala">Sinhala</option>
-                    <option value="English">English</option>
-                    <option value="Tamil">Tamil</option>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Medium</label>
+                  <select name="medium" value={editingSubject.medium} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required>
+                    <option value="" style={{ color: '#000' }}>Select Medium</option>
+                    <option value="Sinhala" style={{ color: '#000' }}>Sinhala</option>
+                    <option value="English" style={{ color: '#000' }}>English</option>
+                    <option value="Tamil" style={{ color: '#000' }}>Tamil</option>
                   </select>
                 </div>
-              </div>
-              <div className="admin-form-group">
-                <label htmlFor="editSubjectMeetingLink">Meeting Link</label>
-                <input
-                  id="editSubjectMeetingLink"
-                  name="meetingLink"
-                  type="url"
-                  value={editingSubject.meetingLink}
-                  onChange={handleSubjectEditChange}
-                />
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="secondary-btn" onClick={() => setEditingSubject(null)}>
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn" disabled={loading}>
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Meeting Link</label>
+                  <input type="url" name="meetingLink" value={editingSubject.meetingLink} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                </div>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button type="button" onClick={() => setEditingSubject(null)} className="btn btn-outline" style={{ flex: 1, padding: '12px' }}>CANCEL</button>
+                  <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1, padding: '12px' }}>{loading ? 'SAVING...' : 'SAVE CHANGES'}</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
+
       {/* Viewing Payment Slip Modal */}
       {viewingSlipUrl && (
-        <div className="modal-overlay" onClick={() => setViewingSlipUrl(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <header className="modal-header">
-              <h3>Payment Receipt Proof</h3>
-              <button className="close-btn" onClick={() => setViewingSlipUrl(null)}>&times;</button>
-            </header>
-            <div className="modal-body" style={{ alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-              <img
-                src={viewingSlipUrl}
-                alt="Payment Receipt Slip"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '60vh',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
-                  objectFit: 'contain'
-                }}
-              />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setViewingSlipUrl(null)}>
+          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '600px', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
+            <div className="dash-panel-head">
+              <span className="dash-panel-title">Proof of Authorization</span>
+              <button onClick={() => setViewingSlipUrl(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
             </div>
-            <footer className="modal-actions" style={{ marginTop: '1.5rem' }}>
-              <button className="secondary-btn" onClick={() => setViewingSlipUrl(null)}>
-                Close
-              </button>
-            </footer>
+            <div className="dash-panel-body" style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+              <img src={viewingSlipUrl} alt="Slip" style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: '8px', objectFit: 'contain' }} />
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setViewingSlipUrl(null)} className="btn btn-outline" style={{ padding: '8px 16px' }}>CLOSE</button>
+            </div>
           </div>
         </div>
       )}

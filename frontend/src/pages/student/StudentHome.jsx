@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './StudentHome.css';
-
+import { useNavigate, Link } from 'react-router-dom';
+import { LogoMark } from '../../components/Navbar';
+import '../Dashboard.css';
 const buildProfileForm = (student) => ({
   name: student?.Name || '',
   whatsappNumber: student?.Watsapp_Number || '',
@@ -356,20 +356,20 @@ const StudentHome = () => {
 
   const subjectCards = (subjectList, emptyTitle, emptyMessage, fallbackLoadingMessage, showEnrollButton = false) => {
     if (fallbackLoadingMessage) {
-      return <div className="empty-state"><h4>{fallbackLoadingMessage}</h4></div>;
+      return <div style={{ color: 'var(--ink-4)', fontFamily: 'var(--mono)', fontSize: '12px' }}>{fallbackLoadingMessage}</div>;
     }
 
     if (!subjectList.length) {
       return (
-        <div className="empty-state">
-          <h4>{emptyTitle}</h4>
-          <p>{emptyMessage}</p>
+        <div style={{ padding: '40px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 'var(--r-xl)' }}>
+          <h4 style={{ color: 'var(--white)', marginBottom: '8px' }}>{emptyTitle}</h4>
+          <p style={{ color: 'var(--ink-4)', fontSize: '14px' }}>{emptyMessage}</p>
         </div>
       );
     }
 
     return (
-      <div className="subjects-grid">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {subjectList.map((subject, index) => {
           const isEnrolled = enrolledSubjects.some(
             (enrollment) => enrollment.Subject_Name === (subject.Subject_Name || subject.Name)
@@ -381,71 +381,57 @@ const StudentHome = () => {
           const paymentStatus = paymentForSubject ? paymentForSubject.Status : null;
 
           return (
-            <article className="subject-card" key={subject.id || subject.Subject_Name || subject.Name || `${emptyTitle}-${index}`}>
-              <div className="subject-card__top">
-                <span className="subject-pill">{subject.Price ? 'Paid' : 'Open'}</span>
-                <span className="subject-index">{String(index + 1).padStart(2, '0')}</span>
+            <article className="dash-course" key={subject.id || subject.Subject_Name || subject.Name || `${emptyTitle}-${index}`} style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
+              <div className="dash-course-info" style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div className="dash-course-title" style={{ fontSize: '18px' }}>{subject.Subject_Name || subject.Name}</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--accent)' }}>{subject.Price ? `Rs. ${subject.Price}` : 'FREE'}</div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '16px', color: 'var(--ink-3)', fontSize: '13px', marginBottom: '16px' }}>
+                  <span>Grade {subject.Grade ?? 'N/A'}</span>
+                  <span>•</span>
+                  <span>{subject.Medium ?? 'Unknown'}</span>
+                  <span>•</span>
+                  <span>Instructor: {subject.InstructorName || subject.Instructor || 'Unknown'}</span>
+                </div>
+
+                {(paymentStatus === 'Approved' || isEnrolled) && subject.MeetingLink && (
+                  <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(45, 212, 191, 0.1)', border: '1px dashed var(--accent)', borderRadius: '8px', textAlign: 'center' }}>
+                    <a href={subject.MeetingLink} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', fontFamily: 'var(--mono)', fontSize: '13px' }}>
+                      [ INITIATE CONNECTION ]
+                    </a>
+                  </div>
+                )}
+                
+                {showEnrollButton && (
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={isEnrolled || enrollingId === subject.id}
+                      onClick={() => handleEnroll(subject)}
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                    >
+                      {isEnrolled ? 'ENROLLED' : enrollingId === subject.id ? 'PROCESSING...' : 'REQUEST CLEARANCE'}
+                    </button>
+                    {paymentStatus === 'Pending' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px' }}>PENDING</button>}
+                    {paymentStatus === 'Approved' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--accent)', borderColor: 'var(--accent)' }}>APPROVED</button>}
+                    {paymentStatus === 'Rejected' && <button type="button" className="btn btn-outline" onClick={() => handlePayNow(subject)} style={{ padding: '8px 16px', fontSize: '12px', color: '#FF5A65', borderColor: '#FF5A65' }}>REJECTED (PAY NOW)</button>}
+                    {!paymentStatus && (
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        disabled={payingId === subject.id}
+                        onClick={() => handlePayNow(subject)}
+                        style={{ padding: '8px 16px', fontSize: '12px' }}
+                      >
+                        {payingId === subject.id ? 'PROCESSING...' : 'PROCESS PAYMENT'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-              <h4>{subject.Subject_Name || subject.Name}</h4>
-              <p className="subject-card__meta">
-                Grade {subject.Grade ?? 'N/A'} · {subject.Medium ?? 'Unknown'}
-              </p>
-              <p className="subject-card__price">{subject.Price ? `Rs. ${subject.Price}` : 'Available now'}</p>
-              <p className="subject-card__instructor">
-                Instructor: {subject.InstructorName || subject.Instructor || 'Unknown'}
-              </p>
-              {(paymentStatus === 'Approved' || isEnrolled) && subject.MeetingLink && (
-                <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: 'rgba(0, 242, 254, 0.08)', border: '1px dashed rgba(0, 242, 254, 0.3)', borderRadius: '8px', fontSize: '0.88rem', textAlign: 'center' }}>
-                  <a href={subject.MeetingLink} target="_blank" rel="noreferrer" style={{ color: '#00f2fe', fontWeight: 600, textDecoration: 'none' }}>
-                    🔗 Join Class Meeting
-                  </a>
-                </div>
-              )}
-              {showEnrollButton && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
-                  <button
-                    type="button"
-                    className={`enroll-btn ${isEnrolled ? 'enrolled' : ''}`}
-                    disabled={isEnrolled || enrollingId === subject.id}
-                    onClick={() => handleEnroll(subject)}
-                  >
-                    {isEnrolled
-                      ? 'Enrolled'
-                      : enrollingId === subject.id
-                      ? 'Enrolling...'
-                      : 'Enroll'}
-                  </button>
-                  {paymentStatus === 'Pending' && (
-                    <button type="button" className="pay-btn pending" disabled>
-                      Pending
-                    </button>
-                  )}
-                  {paymentStatus === 'Approved' && (
-                    <button type="button" className="pay-btn approved" disabled>
-                      Approved
-                    </button>
-                  )}
-                  {paymentStatus === 'Rejected' && (
-                    <button
-                      type="button"
-                      className="pay-btn rejected"
-                      onClick={() => handlePayNow(subject)}
-                    >
-                      Rejected (Pay Now)
-                    </button>
-                  )}
-                  {!paymentStatus && (
-                    <button
-                      type="button"
-                      className="pay-btn"
-                      disabled={payingId === subject.id}
-                      onClick={() => handlePayNow(subject)}
-                    >
-                      {payingId === subject.id ? 'Processing...' : 'Pay Now'}
-                    </button>
-                  )}
-                </div>
-              )}
             </article>
           );
         })}
@@ -454,422 +440,272 @@ const StudentHome = () => {
   };
 
   return (
-    <div className="student-home">
-      <div className="dashboard-wrapper">
-        <header className="student-navbar" aria-label="Student dashboard navigation">
-          <div className="student-navbar__brand">
-            <span className="student-navbar__eyebrow">Student Portal</span>
-            <h1 className="student-navbar__title">Learn Without Limits</h1>
+    <div className="dashboard">
+      <aside className="dash-sidebar">
+        <Link to="/" className="dash-logo">
+          <div className="dash-logo-mark"><LogoMark dark={false} /></div>
+          <span className="dash-logo-text">UVSHUB</span>
+        </Link>
+        <nav className="dash-nav">
+          {[
+            { id: 'home', label: 'Home' },
+            { id: 'subjects', label: 'Subjects' },
+            { id: 'payment', label: 'Payment' },
+            { id: 'profile', label: 'Profile' }
+          ].map(t => (
+            <button
+              key={t.id}
+              className={`dash-nav-item${activeTab === t.id ? ' dash-nav-item--active' : ''}`}
+              onClick={() => setActiveTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <div className="dash-user" style={{ cursor: 'pointer' }} onClick={handleLogout}>
+          <div className="dash-user-av" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-3)', fontSize: '18px', fontWeight: 'bold' }}>{avatarLetter}</div>
+          <div className="dash-user-info">
+            <span className="dash-user-name">Logout</span>
+            <span className="dash-user-plan">{student.Name}</span>
           </div>
-          <div className="student-navbar__tabs" role="tablist" aria-label="Student dashboard sections">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'home'}
-              className={`student-navbar__tab${activeTab === 'home' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('home')}
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'subjects'}
-              className={`student-navbar__tab${activeTab === 'subjects' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('subjects')}
-            >
-              Subjects
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'payment'}
-              className={`student-navbar__tab${activeTab === 'payment' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('payment')}
-            >
-              Payment
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'profile'}
-              className={`student-navbar__tab${activeTab === 'profile' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('profile')}
-            >
-              Profile
-            </button>
+        </div>
+      </aside>
 
+      <main className="dash-main">
+        <header className="dash-header">
+          <div className="dash-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Query subjects..." />
           </div>
-          <button className="student-navbar__logout" onClick={handleLogout}>
-            Logout
-          </button>
+          <div className="dash-header-actions">
+            <div className="dash-bell">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+          </div>
         </header>
 
-        {error && <div className="status-banner status-banner--error">{error}</div>}
-        {loading && <div className="status-banner">Refreshing your profile...</div>}
+        <div className="dash-content">
+          {error && <div className="status-banner status-banner--error" style={{ marginBottom: '24px', padding: '16px', background: 'rgba(224, 45, 60, 0.1)', color: '#FF5A65', border: '1px solid rgba(224, 45, 60, 0.2)', borderRadius: '8px' }}>{error}</div>}
+          {loading && <div className="status-banner" style={{ marginBottom: '24px', padding: '16px', color: 'var(--ink-2)' }}>Refreshing your profile...</div>}
 
-        <main className="dashboard-grid">
-          <section className="profile-card">
-            <div className="profile-header">
-              <div className="profile-avatar">{avatarLetter}</div>
-              <h2 className="profile-name">{student.Name}</h2>
-              <span className="profile-role">Student</span>
-            </div>
+          {activeTab === 'home' && (
+            <>
+              <h1 className="dash-title">Telemetry Overview</h1>
+              <p className="dash-sub">Welcome back, operative. Here is your current network status.</p>
 
-            <div className="profile-details">
-              <div className="detail-item">
-                <span className="detail-label">Student ID</span>
-                <span className="detail-value">#{student.Student_ID}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Email</span>
-                <span className="detail-value">{student.Email}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">WhatsApp</span>
-                <span className="detail-value">{student.Watsapp_Number}</span>
-              </div>
-              {student.NIC && (
-                <div className="detail-item">
-                  <span className="detail-label">NIC</span>
-                  <span className="detail-value">{student.NIC}</span>
-                </div>
-              )}
-              <div className="detail-item">
-                <span className="detail-label">Address</span>
-                <span className="detail-value">{student.Address}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Guardian</span>
-                <span className="detail-value">
-                  {student.Gurdian_s_Name} ({student.Gurdians_Number})
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <section className="dashboard-panel">
-            {activeTab === 'home' && (
-              <div className="panel-card">
-                <div className="panel-heading">
-                  <div>
-                    <p className="panel-kicker">Home</p>
-                    <h3>Your currently enrolled subjects</h3>
+              <div className="dash-stats">
+                <div className="dash-stat-card">
+                  <div className="dash-stat-head">
+                    <span className="dash-stat-label">ENROLLED MODULES</span>
+                    <div className="dash-stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
                   </div>
-                  <span className="panel-count">{enrolledSubjects.length}</span>
+                  <div className="dash-stat-val">{String(enrolledSubjects.length).padStart(2, '0')}</div>
                 </div>
-
-                {subjectCards(
-                  enrolledSubjects,
-                  'No current subjects found',
-                  'Your current subjects will appear here once your enrollment is approved.',
-                  '',
-                  false
-                )}
-              </div>
-            )}
-
-            {activeTab === 'subjects' && (
-              <div className="panel-card">
-                <div className="panel-heading">
-                  <div>
-                    <p className="panel-kicker">Subjects</p>
-                    <h3>All available subjects</h3>
+                <div className="dash-stat-card">
+                  <div className="dash-stat-head">
+                    <span className="dash-stat-label">AVAILABLE SUBJECTS</span>
+                    <div className="dash-stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
                   </div>
-                  <span className="panel-count">{courses.length}</span>
+                  <div className="dash-stat-val">{String(courses.length).padStart(2, '0')}</div>
                 </div>
+                <div className="dash-stat-card">
+                  <div className="dash-stat-head">
+                    <span className="dash-stat-label">STUDENT ID</span>
+                    <div className="dash-stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                  </div>
+                  <div className="dash-stat-val" style={{ fontSize: '24px' }}>#{student.Student_ID}</div>
+                </div>
+              </div>
 
-                {coursesLoading
-                  ? subjectCards([], '', '', 'Loading available subjects...', false)
-                  : subjectCards(
-                    courses,
-                    'No subjects available',
-                    'Available subjects will appear here once they are created.',
+              <div className="dash-panel">
+                <div className="dash-panel-head">
+                  <span className="dash-panel-title">Your currently enrolled subjects</span>
+                </div>
+                <div className="dash-panel-body">
+                  {subjectCards(
+                    enrolledSubjects,
+                    'No current subjects found',
+                    'Your current subjects will appear here once your enrollment is approved.',
                     '',
-                    true
+                    false
                   )}
-              </div>
-            )}
-
-            {activeTab === 'profile' && (
-              <>
-                <div className="panel-card panel-card--intro">
-                  <p className="panel-kicker">Welcome back</p>
-                  <h3>{student.Name}</h3>
-                  <p>
-                    Your profile is ready, and your enrolled subjects are synced below.
-                  </p>
-                  <div className="panel-meta">
-                    <div>
-                      <span>Enrollment</span>
-                      <strong>{enrolledSubjects.length} subjects</strong>
-                    </div>
-                    <div>
-                      <span>Role</span>
-                      <strong>Student</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="panel-card panel-card--form">
-                  <div className="panel-heading">
-                    <div>
-                      <p className="panel-kicker">Edit Profile</p>
-                      <h3>Update your details</h3>
-                    </div>
-                  </div>
-
-                  {profileMessage && <div className="status-banner status-banner--success">{profileMessage}</div>}
-
-                  <form className="profile-form" onSubmit={handleProfileSubmit}>
-                    <div className="profile-form__grid">
-                      <label className="profile-form-group">
-                        <span>Full Name</span>
-                        <input
-                          type="text"
-                          name="name"
-                          value={profileForm.name}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>Email</span>
-                        <input type="email" value={student.Email || ''} readOnly />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>WhatsApp Number</span>
-                        <input
-                          type="text"
-                          name="whatsappNumber"
-                          value={profileForm.whatsappNumber}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>Address</span>
-                        <input
-                          type="text"
-                          name="address"
-                          value={profileForm.address}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>Guardian Name</span>
-                        <input
-                          type="text"
-                          name="guardianName"
-                          value={profileForm.guardianName}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>Guardian Number</span>
-                        <input
-                          type="text"
-                          name="guardianNumber"
-                          value={profileForm.guardianNumber}
-                          onChange={handleProfileChange}
-                          required
-                        />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>New Password</span>
-                        <input
-                          type="password"
-                          name="password"
-                          value={profileForm.password}
-                          onChange={handleProfileChange}
-                          placeholder="Leave blank to keep current password"
-                        />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>Confirm Password</span>
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          value={profileForm.confirmPassword}
-                          onChange={handleProfileChange}
-                          placeholder="Repeat the new password"
-                        />
-                      </label>
-
-                      <label className="profile-form-group">
-                        <span>Student ID</span>
-                        <input type="text" value={`#${student.Student_ID}`} readOnly />
-                      </label>
-                    </div>
-
-                    <div className="profile-form__actions">
-                      <button type="submit" className="profile-form__save" disabled={savingProfile}>
-                        {savingProfile ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'payment' && (
-              <div className="panel-card panel-card--payment">
-                <p className="panel-kicker">Payments</p>
-                <h3>Payment overview</h3>
-                <p>
-                  Payment records are managed separately. Use this space for fee status, receipts, and billing reminders.
-                </p>
-                <div className="payment-notice">
-                  <span>Next step</span>
-                  <strong>Contact the office for pending payment details</strong>
                 </div>
               </div>
-            )}
-          </section>
-        </main>
-      </div>
+            </>
+          )}
+
+          {activeTab === 'subjects' && (
+            <>
+              <h1 className="dash-title">Subject Network</h1>
+              <p className="dash-sub">Browse and request clearance for available modules.</p>
+
+              <div className="dash-panel">
+                <div className="dash-panel-head">
+                  <span className="dash-panel-title">All available subjects</span>
+                  <span className="dash-panel-link">{courses.length} RECORDS</span>
+                </div>
+                <div className="dash-panel-body">
+                  {coursesLoading
+                    ? subjectCards([], '', '', 'Loading available subjects...', false)
+                    : subjectCards(
+                      courses,
+                      'No subjects available',
+                      'Available subjects will appear here once they are created.',
+                      '',
+                      true
+                    )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'profile' && (
+            <>
+              <h1 className="dash-title">Operative Profile</h1>
+              <p className="dash-sub">Update your clearance details.</p>
+
+              <div className="dash-grid">
+                <div className="dash-panel">
+                  <div className="dash-panel-head">
+                    <span className="dash-panel-title">Edit Profile</span>
+                  </div>
+                  <div className="dash-panel-body">
+                    {profileMessage && <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(45, 212, 191, 0.1)', color: 'var(--accent)', border: '1px solid rgba(45, 212, 191, 0.2)', borderRadius: '8px' }}>{profileMessage}</div>}
+
+                    <form onSubmit={handleProfileSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Full Name</label>
+                        <input type="text" name="name" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={profileForm.name} onChange={handleProfileChange} required />
+                      </div>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Email</label>
+                        <input type="email" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={student.Email || ''} readOnly />
+                      </div>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>WhatsApp Number</label>
+                        <input type="text" name="whatsappNumber" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={profileForm.whatsappNumber} onChange={handleProfileChange} required />
+                      </div>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Address</label>
+                        <input type="text" name="address" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={profileForm.address} onChange={handleProfileChange} required />
+                      </div>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Guardian Name</label>
+                        <input type="text" name="guardianName" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={profileForm.guardianName} onChange={handleProfileChange} required />
+                      </div>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Guardian Number</label>
+                        <input type="text" name="guardianNumber" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={profileForm.guardianNumber} onChange={handleProfileChange} required />
+                      </div>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>New Password</label>
+                        <input type="password" name="password" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={profileForm.password} onChange={handleProfileChange} placeholder="Leave blank to keep current" />
+                      </div>
+                      <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Confirm Password</label>
+                        <input type="password" name="confirmPassword" style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} value={profileForm.confirmPassword} onChange={handleProfileChange} />
+                      </div>
+                      <div className="auth-field" style={{ gridColumn: '1 / -1' }}>
+                        <button type="submit" className="btn btn-primary" disabled={savingProfile} style={{ padding: '12px', fontSize: '14px', width: '200px' }}>
+                          {savingProfile ? 'SAVING...' : 'SAVE CHANGES'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'payment' && (
+            <>
+              <h1 className="dash-title">Financial Records</h1>
+              <p className="dash-sub">Payment overview and billing reminders.</p>
+
+              <div className="dash-panel">
+                <div className="dash-panel-head">
+                  <span className="dash-panel-title">Payments</span>
+                </div>
+                <div className="dash-panel-body">
+                  <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <div style={{ color: 'var(--ink-3)', fontSize: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>Next step</div>
+                    <div style={{ color: 'var(--white)', fontWeight: 700 }}>Contact the office for pending payment details</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </main>
 
       {/* Payment Authorization Modal */}
       {showPaymentModal && selectedCourseForPayment && (
-        <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '1.25rem', maxWidth: '460px' }}>
-            <header className="modal-header" style={{ paddingBottom: '0.5rem', marginBottom: '0.6rem' }}>
-              <h3 style={{ fontSize: '1.15rem', margin: 0 }}>Upload Payment Slip</h3>
-              <button className="close-btn" onClick={() => setShowPaymentModal(false)}>&times;</button>
-            </header>
-            <form className="edit-subject-form" onSubmit={handlePaySubmit} style={{ gap: '0.6rem' }}>
-              <div className="payment-bank-details" style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                padding: '0.6rem 0.8rem',
-                borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                marginBottom: '0.1rem'
-              }}>
-                <h4 style={{ margin: '0 0 0.3rem 0', color: '#00f2fe', fontSize: '0.85rem' }}>Bank Details</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem 1rem', fontSize: '0.8rem' }}>
-                  <div><strong style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Bank:</strong> Commercial Bank</div>
-                  <div><strong style={{ color: 'rgba(255, 255, 255, 0.7)' }}>A/C No.:</strong> 8020111119</div>
-                  <div><strong style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Name:</strong> Soesh cooray</div>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowPaymentModal(false)}>
+          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '460px', padding: '0', background: '#0a0a0c', border: '1px solid var(--border)' }}>
+            <div className="dash-panel-head">
+              <span className="dash-panel-title">Upload Payment Slip</span>
+              <button onClick={() => setShowPaymentModal(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
+            </div>
+            <div className="dash-panel-body">
+              <form onSubmit={handlePaySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ color: 'var(--accent)', fontSize: '11px', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 700 }}>Bank Details</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px', color: 'var(--ink-2)' }}>
+                    <div><strong>Bank:</strong> Commercial Bank</div>
+                    <div><strong>A/C No.:</strong> 8020111119</div>
+                    <div style={{ gridColumn: '1 / -1' }}><strong>Name:</strong> Soesh cooray</div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="payment-instructions" style={{
-                fontSize: '0.78rem',
-                color: 'rgba(255, 255, 255, 0.75)',
-                lineHeight: '1.35',
-                marginBottom: '0.1rem',
-                padding: '0.5rem 0.7rem',
-                borderLeft: '4px solid #f59e0b',
-                background: 'rgba(245, 158, 11, 0.05)',
-                borderRadius: '0 8px 8px 0'
-              }}>
-                <p style={{ margin: '0 0 0.2rem 0' }}>
-                  Deposit class fee and upload receipt. We will verify and approve within 3 business days.
-                </p>
-                <p style={{ margin: 0, fontWeight: 600, color: '#f59e0b' }}>
-                  Please pay in advance. Don't wait until the last moment.
-                </p>
-              </div>
+                <div style={{ padding: '12px 16px', borderLeft: '4px solid #f59e0b', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '0 8px 8px 0', fontSize: '13px', color: 'var(--ink-2)' }}>
+                  <p style={{ margin: '0 0 4px 0' }}>Deposit class fee and upload receipt. We will verify and approve within 3 business days.</p>
+                  <p style={{ margin: 0, fontWeight: 700, color: '#f59e0b' }}>Please pay in advance. Don't wait until the last moment.</p>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <div className="admin-form-group" style={{ gap: '0.2rem' }}>
-                  <label htmlFor="paymentMethod" style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Method</label>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Payment Method</label>
                   <select
-                    id="paymentMethod"
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }}
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     required
-                    style={{
-                      padding: '0.5rem 0.7rem',
-                      background: 'rgba(8, 12, 24, 0.72)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      color: '#fff',
-                      outline: 'none',
-                      fontSize: '0.8rem'
-                    }}
                   >
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Card">Card</option>
-                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer" style={{ color: '#000' }}>Bank Transfer</option>
+                    <option value="Card" style={{ color: '#000' }}>Card</option>
+                    <option value="Cash" style={{ color: '#000' }}>Cash</option>
                   </select>
                 </div>
 
-                <div className="admin-form-group" style={{ gap: '0.2rem' }}>
-                  <label style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Upload Receipt / Payment Slip</label>
-                  <div style={{
-                    border: '2px dashed rgba(255, 255, 255, 0.12)',
-                    borderRadius: '10px',
-                    padding: '0.6rem 0.8rem',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    background: 'rgba(8, 12, 24, 0.4)',
-                    position: 'relative'
-                  }}>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Upload Receipt / Payment Slip</label>
+                  <div style={{ border: '2px dashed var(--border)', borderRadius: '8px', padding: '24px', textAlign: 'center', cursor: 'pointer', background: 'rgba(255, 255, 255, 0.02)', position: 'relative' }}>
                     <input
                       type="file"
-                      id="slipUpload"
                       accept="image/png, image/jpeg"
                       onChange={handleFileChange}
                       required
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        opacity: 0,
-                        cursor: 'pointer'
-                      }}
+                      style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
                     />
-                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem' }}>
+                    <div style={{ color: 'var(--ink-3)', fontSize: '13px' }}>
                       {paymentSlipName ? (
-                        <div style={{ color: '#00f2fe', fontWeight: 600 }}>{paymentSlipName}</div>
+                        <div style={{ color: 'var(--accent)', fontWeight: 600 }}>{paymentSlipName}</div>
                       ) : (
-                        <>
-                          <span style={{ marginRight: '0.3rem' }}>📁</span>
-                          <span>Select jpeg or png file (Max 5MB)</span>
-                        </>
+                        <span>📁 Select jpeg or png file (Max 5MB)</span>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {uploadError && (
-                <div className="status-banner status-banner--error" style={{ padding: '0.4rem 0.6rem', fontSize: '0.78rem', marginTop: '0.1rem' }}>
-                  {uploadError}
+                {uploadError && <div style={{ padding: '12px', background: 'rgba(224, 45, 60, 0.1)', color: '#FF5A65', border: '1px solid rgba(224, 45, 60, 0.2)', borderRadius: '8px', fontSize: '13px' }}>{uploadError}</div>}
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <button type="button" onClick={() => setShowPaymentModal(false)} className="btn btn-outline" style={{ flex: 1, padding: '12px' }}>CANCEL</button>
+                  <button type="submit" className="btn btn-primary" disabled={payingId !== null || !paymentSlip} style={{ flex: 1, padding: '12px' }}>
+                    {payingId !== null ? 'UPLOADING...' : 'SUBMIT PAYMENT'}
+                  </button>
                 </div>
-              )}
-
-              <div className="modal-actions" style={{ marginTop: '0.4rem', gap: '0.5rem' }}>
-                <button type="button" className="secondary-btn" onClick={() => setShowPaymentModal(false)} style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.8rem' }}>
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn" disabled={payingId !== null || !paymentSlip} style={{
-                  padding: '0.5rem 1rem',
-                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                  color: '#05111f',
-                  fontWeight: 800,
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  minWidth: '100px',
-                  fontSize: '0.8rem'
-                }}>
-                  {payingId !== null ? 'Uploading...' : 'Submit Payment'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
