@@ -154,10 +154,6 @@
   margin-top: 4px;
   flex-wrap: wrap;
 }
-.course-card__stars { color: var(--accent); font-size: 12px; letter-spacing: 2px; }
-.course-card__rating { font-family: var(--mono); font-size: 12px; color: var(--white); }
-.course-card__reviews { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
-.course-card__sep { width: 3px; height: 3px; border-radius: 50%; background: var(--border-2); }
 .course-card__dur {
   display: flex;
   align-items: center;
