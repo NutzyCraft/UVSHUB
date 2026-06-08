@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
 const NAV_LINKS = [
   { id: 'nav-approach',   label: 'Approach',   href: '#approach'   },
-  { id: 'nav-instructor', label: 'Instructors', href: '#instructors' },
+  { id: 'nav-instructor', label: 'Instructors', href: '/instructors' },
   { id: 'nav-courses',    label: 'Courses',     href: '#courses'    },
   { id: 'nav-pricing',    label: 'Pricing',     href: '#pricing'    },
 ];
@@ -33,11 +33,20 @@ function Navbar() {
     return () => { document.body.style.overflow = ''; };
   }, [drawerOpen]);
 
-  const scrollTo = (href) => {
+  const navigate = useNavigate();
+
+  const handleNavClick = (href) => {
     setDrawerOpen(false);
     if (href.startsWith('#')) {
       const el = document.querySelector(href);
-      el?.scrollIntoView({ behavior: 'smooth' });
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // If not on landing page, navigate to landing page with hash
+        navigate(`/${href}`);
+      }
+    } else {
+      navigate(href);
     }
   };
 
@@ -61,16 +70,16 @@ function Navbar() {
               id={link.id}
               href={link.href}
               className="navbar__link"
-              onClick={e => { e.preventDefault(); scrollTo(link.href); }}
+              onClick={e => { e.preventDefault(); handleNavClick(link.href); }}
             >
               {link.label}
             </a>
           ))}
         </div>
 
-        <div className="navbar__right">
-          <Link to="/login" id="navbar-login" className="navbar__login">Log in</Link>
-          <Link to="/register" id="navbar-cta" className="btn btn-primary">Get Started</Link>
+        <div className="navbar__actions">
+          <Link to="/student/login" id="navbar-login" className="navbar__login">Log in</Link>
+          <Link to="/student/register" id="navbar-cta" className="btn btn-primary">Get Started</Link>
         </div>
 
         {/* Hamburger */}
@@ -100,9 +109,9 @@ function Navbar() {
             </a>
           ))}
 
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <Link to="/login" className="btn btn-outline" onClick={() => setDrawerOpen(false)}>Log in</Link>
-            <Link to="/register" className="btn btn-primary" onClick={() => setDrawerOpen(false)}>Get Started Free</Link>
+          <div className="drawer__footer">
+            <Link to="/student/login" className="btn btn-outline" onClick={() => setDrawerOpen(false)}>Log in</Link>
+            <Link to="/student/register" className="btn btn-primary" onClick={() => setDrawerOpen(false)}>Get Started Free</Link>
           </div>
         </div>
       </div>

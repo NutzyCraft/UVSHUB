@@ -8,6 +8,10 @@ const AdminDashboard = () => {
   const [subjects, setSubjects] = useState([]);
   const [payments, setPayments] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
+  const [instructors, setInstructors] = useState([]);
+  const [instructorForm, setInstructorForm] = useState({ name: '', description: '', image: null });
+  const [editingInstructor, setEditingInstructor] = useState(null);
+  const [showInstructorModal, setShowInstructorModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [editingSubject, setEditingSubject] = useState(null);
   const [courseForm, setCourseForm] = useState({
@@ -103,6 +107,16 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchInstructors = async () => {
+    try {
+      const response = await fetch('/api/v1/instructors');
+      const data = await response.json();
+      if (response.ok) setInstructors(data.data || []);
+    } catch {
+      console.error('Failed to fetch instructors');
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -127,7 +141,11 @@ const AdminDashboard = () => {
     if (activeTab === 'students') {
       Promise.resolve().then(() => fetchStudents(token));
     } else if (activeTab === 'subjects') {
-      Promise.resolve().then(() => fetchSubjects());
+      Promise.resolve().then(() => { fetchSubjects(); fetchInstructors(); });
+    } else if (activeTab === 'courses') {
+      Promise.resolve().then(() => fetchInstructors());
+    } else if (activeTab === 'instructors') {
+      Promise.resolve().then(() => fetchInstructors());
     } else if (activeTab === 'payments') {
       Promise.resolve().then(() => fetchPayments(token));
     } else if (activeTab === 'history') {
@@ -177,6 +195,59 @@ const AdminDashboard = () => {
       }
     } catch {
       setError('Connection error rejecting payment');
+    }
+  };
+
+  const handleInstructorSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    setError(''); setSuccess(''); setLoading(true);
+
+    const formData = new FormData();
+    formData.append('name', instructorForm.name);
+    formData.append('description', instructorForm.description);
+    if (instructorForm.image) {
+      formData.append('image', instructorForm.image);
+    }
+
+    try {
+      const url = editingInstructor ? `/api/v1/instructors/${editingInstructor.id}` : '/api/v1/instructors';
+      const method = editingInstructor ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(editingInstructor ? 'Instructor updated!' : 'Instructor added!');
+        setShowInstructorModal(false);
+        setInstructorForm({ name: '', description: '', image: null });
+        setEditingInstructor(null);
+        fetchInstructors();
+      } else {
+        setError(data.message || 'Failed to save instructor');
+      }
+    } catch {
+      setError('Connection error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteInstructor = async (id) => {
+    if (!window.confirm('Delete this instructor?')) return;
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`/api/v1/instructors/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) fetchInstructors();
+    } catch {
+      console.error('Error deleting instructor');
     }
   };
 
@@ -347,6 +418,7 @@ const AdminDashboard = () => {
           {[
             { id: 'students', label: 'Students' },
             { id: 'subjects', label: 'Subjects' },
+            { id: 'instructors', label: 'Instructors' },
             { id: 'courses', label: 'Add Course' },
             { id: 'payments', label: 'Approve Payments' },
             { id: 'history', label: 'Payment History' }
@@ -374,17 +446,7 @@ const AdminDashboard = () => {
       </aside>
 
       <main className="dash-main">
-        <header className="dash-header">
-          <div className="dash-search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Global search..." />
-          </div>
-          <div className="dash-header-actions">
-            <div className="dash-bell">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            </div>
-          </div>
-        </header>
+
 
         <div className="dash-content">
           {error && <div className="status-banner status-banner--error" style={{ marginBottom: '24px', padding: '16px', background: 'rgba(224, 45, 60, 0.1)', color: '#FF5A65', border: '1px solid rgba(224, 45, 60, 0.2)', borderRadius: '8px' }}>{error}</div>}
@@ -478,6 +540,54 @@ const AdminDashboard = () => {
             </>
           )}
 
+          {activeTab === 'instructors' && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div>
+                  <h1 className="dash-title">Instructors Management</h1>
+                  <p className="dash-sub">Add, edit, or delete instructor profiles.</p>
+                </div>
+                <button 
+                  onClick={() => { setEditingInstructor(null); setInstructorForm({ name: '', description: '', image: null }); setShowInstructorModal(true); }}
+                  style={{ background: 'var(--ink-1)', color: 'var(--white)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                >
+                  + Add Instructor
+                </button>
+              </div>
+              <div className="dash-panel">
+                <div className="dash-panel-body" style={{ padding: '0' }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
+                          <th style={{ padding: '16px', fontWeight: 600, color: 'var(--ink-3)', fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Image</th>
+                          <th style={{ padding: '16px', fontWeight: 600, color: 'var(--ink-3)', fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Name</th>
+                          <th style={{ padding: '16px', fontWeight: 600, color: 'var(--ink-3)', fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Description</th>
+                          <th style={{ padding: '16px', fontWeight: 600, color: 'var(--ink-3)', fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {instructors.map(inst => (
+                          <tr key={inst.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '16px', color: 'var(--ink-2)' }}>
+                              {inst.Image ? <img src={inst.Image} alt={inst.Name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} /> : <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{inst.Name.charAt(0)}</div>}
+                            </td>
+                            <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{inst.Name}</td>
+                            <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{inst.Description}</td>
+                            <td style={{ padding: '16px' }}>
+                              <button onClick={() => { setEditingInstructor(inst); setInstructorForm({ name: inst.Name, description: inst.Description, image: null }); setShowInstructorModal(true); }} style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', marginRight: '16px', textDecoration: 'underline' }}>Edit</button>
+                              <button onClick={() => handleDeleteInstructor(inst.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', textDecoration: 'underline' }}>Delete</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {activeTab === 'courses' && (
             <>
               <h1 className="dash-title">Create New Module</h1>
@@ -491,7 +601,10 @@ const AdminDashboard = () => {
                     </div>
                     <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Instructor</label>
-                      <input type="text" value={courseForm.instructor} onChange={e => setCourseForm({...courseForm, instructor: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required placeholder="e.g. Mr. Perera" />
+                      <select value={courseForm.instructor} onChange={e => setCourseForm({...courseForm, instructor: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', appearance: 'none' }} required>
+                        <option value="" disabled>Select an instructor</option>
+                        {instructors.map(inst => <option key={inst.id} value={inst.Name}>{inst.Name}</option>)}
+                      </select>
                     </div>
                     <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Grade</label>
@@ -504,10 +617,10 @@ const AdminDashboard = () => {
                     <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Medium</label>
                       <select value={courseForm.medium} onChange={e => setCourseForm({...courseForm, medium: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required>
-                        <option value="" style={{ color: '#000' }}>Select Medium</option>
-                        <option value="Sinhala" style={{ color: '#000' }}>Sinhala</option>
-                        <option value="English" style={{ color: '#000' }}>English</option>
-                        <option value="Tamil" style={{ color: '#000' }}>Tamil</option>
+                        <option value="" disabled>Select Medium</option>
+                        <option value="Sinhala">Sinhala</option>
+                        <option value="English">English</option>
+                        <option value="Tamil">Tamil</option>
                       </select>
                     </div>
                     <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -676,7 +789,10 @@ const AdminDashboard = () => {
                 </div>
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Instructor</label>
-                  <input type="text" name="instructor" value={editingSubject.instructor} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required />
+                  <select name="instructor" value={editingSubject.instructor} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', appearance: 'none' }} required>
+                    <option value="" disabled>Select an instructor</option>
+                    {instructors.map(inst => <option key={inst.id} value={inst.Name}>{inst.Name}</option>)}
+                  </select>
                 </div>
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Grade</label>
@@ -689,10 +805,10 @@ const AdminDashboard = () => {
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Medium</label>
                   <select name="medium" value={editingSubject.medium} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required>
-                    <option value="" style={{ color: '#000' }}>Select Medium</option>
-                    <option value="Sinhala" style={{ color: '#000' }}>Sinhala</option>
-                    <option value="English" style={{ color: '#000' }}>English</option>
-                    <option value="Tamil" style={{ color: '#000' }}>Tamil</option>
+                    <option value="" disabled>Select Medium</option>
+                    <option value="Sinhala">Sinhala</option>
+                    <option value="English">English</option>
+                    <option value="Tamil">Tamil</option>
                   </select>
                 </div>
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -722,6 +838,33 @@ const AdminDashboard = () => {
             </div>
             <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setViewingSlipUrl(null)} className="btn btn-outline" style={{ padding: '8px 16px' }}>CLOSE</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showInstructorModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="dash-panel" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="dash-panel-body">
+              <h2 className="dash-title" style={{ marginBottom: '24px' }}>{editingInstructor ? 'Edit Instructor' : 'Add Instructor'}</h2>
+              <form onSubmit={handleInstructorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Name</label>
+                  <input type="text" value={instructorForm.name} onChange={e => setInstructorForm({...instructorForm, name: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required />
+                </div>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Description</label>
+                  <textarea value={instructorForm.description} onChange={e => setInstructorForm({...instructorForm, description: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', minHeight: '100px', resize: 'vertical' }} required />
+                </div>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Image (Optional)</label>
+                  <input type="file" onChange={e => setInstructorForm({...instructorForm, image: e.target.files[0]})} style={{ width: '100%', color: 'var(--ink-3)', fontSize: '14px' }} accept="image/*" />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                  <button type="button" onClick={() => setShowInstructorModal(false)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--white)', padding: '12px 24px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Cancel</button>
+                  <button type="submit" disabled={loading} style={{ background: 'var(--white)', color: 'var(--black)', border: 'none', padding: '12px 24px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{loading ? 'Saving...' : 'Save'}</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
