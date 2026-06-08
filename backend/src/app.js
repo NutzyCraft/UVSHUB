@@ -13,6 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const instructorRoutes = require('./routes/instructorRoutes');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/courses', courseRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/instructors', instructorRoutes);
 
 // ── Error handling ──────────────────────────────────────────────────────────
 app.use(notFound);
