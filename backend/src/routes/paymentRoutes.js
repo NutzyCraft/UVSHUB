@@ -1,5 +1,5 @@
 const express = require('express');
-const { getPayments, approvePayment, createPayment, rejectPayment } = require('../controllers/paymentController');
+const { getPayments, approvePayment, createPayment, rejectPayment, getStudentPayments } = require('../controllers/paymentController');
 const { protect, authorise } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
@@ -8,7 +8,8 @@ const router = express.Router();
 // All payment routes require authentication
 router.use(protect);
 
-// Student submit payment
+// Student actions
+router.get('/history', getStudentPayments);
 router.post('/', upload.single('slip'), createPayment);
 
 // Admin-only actions

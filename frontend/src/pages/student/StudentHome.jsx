@@ -45,6 +45,8 @@ const StudentHome = () => {
   const [paymentSlip, setPaymentSlip] = useState(null);
   const [paymentSlipName, setPaymentSlipName] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     navigateRef.current = navigate;
@@ -76,6 +78,31 @@ const StudentHome = () => {
       setLoading(false);
     }
   };
+
+  const fetchPaymentHistory = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setHistoryLoading(true);
+    try {
+      const response = await fetch('/api/v1/payments/history', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setPaymentHistory(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch payment history', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'payment') {
+      fetchPaymentHistory();
+    }
+  }, [activeTab]);
 
   const handleEnroll = async (course) => {
     const token = localStorage.getItem('token');
@@ -396,41 +423,47 @@ const StudentHome = () => {
                   <span>Instructor: {subject.InstructorName || subject.Instructor || 'Unknown'}</span>
                 </div>
 
-                {(paymentStatus === 'Approved' || isEnrolled) && subject.MeetingLink && (
-                  <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(45, 212, 191, 0.1)', border: '1px dashed var(--accent)', borderRadius: '8px', textAlign: 'center' }}>
-                    <a href={subject.MeetingLink} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', fontFamily: 'var(--mono)', fontSize: '13px' }}>
-                      [ INITIATE CONNECTION ]
-                    </a>
-                  </div>
-                )}
-                
-                {showEnrollButton && (
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={isEnrolled || enrollingId === subject.id}
-                      onClick={() => handleEnroll(subject)}
-                      style={{ padding: '8px 16px', fontSize: '12px' }}
-                    >
-                      {isEnrolled ? 'ENROLLED' : enrollingId === subject.id ? 'PROCESSING...' : 'REQUEST CLEARANCE'}
-                    </button>
-                    {paymentStatus === 'Pending' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px' }}>PENDING</button>}
-                    {paymentStatus === 'Approved' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--accent)', borderColor: 'var(--accent)' }}>APPROVED</button>}
-                    {paymentStatus === 'Rejected' && <button type="button" className="btn btn-outline" onClick={() => handlePayNow(subject)} style={{ padding: '8px 16px', fontSize: '12px', color: '#FF5A65', borderColor: '#FF5A65' }}>REJECTED (PAY NOW)</button>}
-                    {!paymentStatus && (
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {showEnrollButton && (
+                    <>
                       <button
                         type="button"
-                        className="btn btn-outline"
-                        disabled={payingId === subject.id}
-                        onClick={() => handlePayNow(subject)}
+                        className="btn btn-primary"
+                        disabled={isEnrolled || enrollingId === subject.id}
+                        onClick={() => handleEnroll(subject)}
                         style={{ padding: '8px 16px', fontSize: '12px' }}
                       >
-                        {payingId === subject.id ? 'PROCESSING...' : 'PROCESS PAYMENT'}
+                        {isEnrolled ? 'ENROLLED' : enrollingId === subject.id ? 'PROCESSING...' : ' ENROLL '}
                       </button>
-                    )}
-                  </div>
-                )}
+                      {paymentStatus === 'Pending' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px' }}>PENDING</button>}
+                      {paymentStatus === 'Approved' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--accent)', borderColor: 'var(--accent)' }}>APPROVED</button>}
+                      {paymentStatus === 'Rejected' && <button type="button" className="btn btn-outline" onClick={() => handlePayNow(subject)} style={{ padding: '8px 16px', fontSize: '12px', color: '#FF5A65', borderColor: '#FF5A65' }}>REJECTED (PAY NOW)</button>}
+                      {!paymentStatus && (
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          disabled={payingId === subject.id}
+                          onClick={() => handlePayNow(subject)}
+                          style={{ padding: '8px 16px', fontSize: '12px' }}
+                        >
+                          {payingId === subject.id ? 'PROCESSING...' : 'PROCESS PAYMENT'}
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {(paymentStatus === 'Approved' || isEnrolled) && subject.MeetingLink && (
+                    <a 
+                      href={subject.MeetingLink} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="btn btn-primary"
+                      style={{ padding: '8px 16px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                    >
+                      JOIN MEETING
+                    </a>
+                  )}
+                </div>
               </div>
             </article>
           );
@@ -527,7 +560,7 @@ const StudentHome = () => {
           {activeTab === 'subjects' && (
             <>
               <h1 className="dash-title">Subject Network</h1>
-              <p className="dash-sub">Browse and request clearance for available modules.</p>
+              <p className="dash-sub">Browse and enroll for available modules.</p>
 
               <div className="dash-panel">
                 <div className="dash-panel-head">
@@ -617,10 +650,44 @@ const StudentHome = () => {
                   <span className="dash-panel-title">Payments</span>
                 </div>
                 <div className="dash-panel-body">
-                  <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <div style={{ color: 'var(--ink-3)', fontSize: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>Next step</div>
-                    <div style={{ color: 'var(--white)', fontWeight: 700 }}>Contact the office for pending payment details</div>
-                  </div>
+                  {historyLoading ? (
+                    <div style={{ color: 'var(--ink-4)', fontFamily: 'var(--mono)', fontSize: '12px', padding: '20px' }}>LOADING HISTORY...</div>
+                  ) : paymentHistory.length === 0 ? (
+                    <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      <div style={{ color: 'var(--ink-3)', fontSize: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>No Payments Found</div>
+                      <div style={{ color: 'var(--white)', fontWeight: 700 }}>You haven't made any payments yet.</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {paymentHistory.map((p, i) => (
+                        <div key={i} style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                          <div>
+                            <div style={{ color: 'var(--white)', fontWeight: 700, fontSize: '16px', marginBottom: '4px' }}>{p.Subject}</div>
+                            <div style={{ color: 'var(--ink-3)', fontSize: '13px', fontFamily: 'var(--mono)' }}>{new Date(p.created_at).toLocaleDateString()} • {p.Method}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent)', fontFamily: 'var(--mono)' }}>Rs. {p.Amount}</div>
+                            <div style={{ 
+                              padding: '4px 10px', 
+                              borderRadius: '4px', 
+                              fontSize: '11px', 
+                              fontFamily: 'var(--mono)', 
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              background: p.Status === 'Approved' ? 'rgba(45, 212, 191, 0.1)' : p.Status === 'Rejected' ? 'rgba(255, 90, 101, 0.1)' : 'rgba(226, 255, 74, 0.1)',
+                              color: p.Status === 'Approved' ? 'var(--blue)' : p.Status === 'Rejected' ? '#FF5A65' : 'var(--accent)',
+                              border: `1px solid ${p.Status === 'Approved' ? 'var(--blue)' : p.Status === 'Rejected' ? '#FF5A65' : 'var(--accent)'}`
+                            }}>
+                              {p.Status}
+                            </div>
+                            {p.Slip_Url && (
+                              <a href={p.Slip_Url} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '11px' }}>RECEIPT</a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </>

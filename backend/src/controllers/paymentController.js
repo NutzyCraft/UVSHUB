@@ -224,4 +224,33 @@ const createPayment = async (req, res) => {
   });
 };
 
-module.exports = { getPayments, approvePayment, createPayment, rejectPayment };
+/**
+ * @desc    Get student's own payments
+ * @route   GET /api/v1/payments/history
+ * @access  Private
+ */
+const getStudentPayments = async (req, res) => {
+  const student = req.user;
+  if (!student) {
+    const error = new Error('Not authorised');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const payments = await prisma.payments.findMany({
+    where: { Student_ID: student.Student_ID },
+    orderBy: { created_at: 'desc' }
+  });
+  
+  const serializedPayments = await Promise.all(payments.map(async p => ({
+    ...p,
+    id: p.id.toString(),
+    Student_ID: p.Student_ID.toString(),
+    Amount: p.Amount.toString(),
+    Slip_Url: p.Slip_Url ? await getSignedUrlIfNeeded(p.Slip_Url) : null
+  })));
+
+  res.status(200).json({ success: true, count: payments.length, data: serializedPayments });
+};
+
+module.exports = { getPayments, approvePayment, createPayment, rejectPayment, getStudentPayments };
