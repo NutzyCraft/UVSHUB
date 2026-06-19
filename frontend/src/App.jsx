@@ -7,11 +7,13 @@ import StudentRegister from './pages/student/StudentRegister';
 import StudentHome from './pages/student/StudentHome';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import CustomCursor from './components/ui/CustomCursor';
+import ThemeToggle from './components/ui/ThemeToggle';
 
 function App() {
   return (
     <BrowserRouter>
       <CustomCursor />
+      <ThemeToggle />
       <Routes>
         <Route path="/"            element={<Landing />}      />
         <Route path="/courses"     element={<Courses />}      />
