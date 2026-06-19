@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import './CourseCard.css';
 import SpotlightCard from './SpotlightCard';
 
@@ -19,7 +18,7 @@ function CourseCard({ course }) {
 
   return (
     <SpotlightCard className="course-card">
-      <Link to={`/courses/${id}`} id={`course-${id}`} aria-label={title} style={{ display: 'flex', flexDirection: 'column', height: '100%', textDecoration: 'none', color: 'inherit' }}>
+      <div id={`course-${id}`} aria-label={title} style={{ display: 'flex', flexDirection: 'column', height: '100%', textDecoration: 'none', color: 'inherit' }}>
         <div className="course-card__thumb">
           <img src={thumb} alt={title} className="course-card__thumb-img" loading="lazy" />
           {badge && <span className={`course-card__badge course-card__badge--${badgeCls}`}>{badge}</span>}
@@ -46,7 +45,7 @@ function CourseCard({ course }) {
             </div>
           </div>
         </div>
-      </Link>
+      </div>
     </SpotlightCard>
   );
 }

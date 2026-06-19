@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import './CoursesShowcase.css';
 import CourseCard from './ui/CourseCard';
 import Reveal from './ui/Reveal';
@@ -38,11 +37,7 @@ function CoursesShowcase() {
             <h2 className="showcase__header-title" id="showcase-heading">
               Curated modules<br />for deep focus.
             </h2>
-            <p className="showcase__header-sub">Access over 1,160 highly-calibrated training simulations.</p>
           </div>
-          <Link to="/courses" className="btn btn-outline" id="showcase-view-all">
-            Query All Records
-          </Link>
         </div>
 
         <Reveal direction="up" delay={100}>
