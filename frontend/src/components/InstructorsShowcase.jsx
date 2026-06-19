@@ -9,7 +9,7 @@ function InstructorsShowcase() {
   useEffect(() => {
     const fetchInstructors = async () => {
       try {
-        const res = await fetch('/api/v1/instructors');
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/instructors`);
         const data = await res.json();
         if (data.success) {
           setInstructors(data.data);

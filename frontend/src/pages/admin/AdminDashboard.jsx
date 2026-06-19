@@ -33,7 +33,7 @@ const AdminDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/v1/users', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
@@ -53,7 +53,7 @@ const AdminDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/v1/courses');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses`);
       const data = await response.json();
       if (response.ok) {
         setSubjects(data.data || []);
@@ -71,7 +71,7 @@ const AdminDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/v1/payments', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/payments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/v1/payments', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/payments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
@@ -109,7 +109,7 @@ const AdminDashboard = () => {
 
   const fetchInstructors = async () => {
     try {
-      const response = await fetch('/api/v1/instructors');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/instructors`);
       const data = await response.json();
       if (response.ok) setInstructors(data.data || []);
     } catch {
@@ -158,7 +158,7 @@ const AdminDashboard = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`/api/v1/payments/${paymentId}/approve`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/payments/${paymentId}/approve`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -182,7 +182,7 @@ const AdminDashboard = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`/api/v1/payments/${paymentId}/reject`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/payments/${paymentId}/reject`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -211,7 +211,7 @@ const AdminDashboard = () => {
     }
 
     try {
-      const url = editingInstructor ? `/api/v1/instructors/${editingInstructor.id}` : '/api/v1/instructors';
+      const url = editingInstructor ? `${import.meta.env.VITE_API_URL || ''}/api/v1/instructors/${editingInstructor.id}` : `${import.meta.env.VITE_API_URL || ''}/api/v1/instructors`;
       const method = editingInstructor ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
     if (!window.confirm('Delete this instructor?')) return;
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`/api/v1/instructors/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/instructors/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -259,7 +259,7 @@ const AdminDashboard = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/v1/courses', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -293,7 +293,7 @@ const AdminDashboard = () => {
   const viewStudentDetails = async (studentId) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`/api/v1/users/${studentId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/users/${studentId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
@@ -342,7 +342,7 @@ const AdminDashboard = () => {
     setSuccess('');
 
     try {
-      const response = await fetch(`/api/v1/courses/${editingSubject.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${editingSubject.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -385,7 +385,7 @@ const AdminDashboard = () => {
     setSuccess('');
 
     try {
-      const response = await fetch(`/api/v1/courses/${subjectId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${subjectId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

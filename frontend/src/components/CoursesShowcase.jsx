@@ -11,7 +11,7 @@ function CoursesShowcase() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await fetch('/api/v1/courses');
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses`);
         const data = await res.json();
         if (data.success) {
           setCourses(data.data.slice(0, 8));

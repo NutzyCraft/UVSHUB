@@ -56,7 +56,7 @@ const StudentHome = () => {
 
   const fetchProfile = async (studentId, token) => {
     try {
-      const response = await fetch(`/api/v1/users/${studentId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/users/${studentId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -84,7 +84,7 @@ const StudentHome = () => {
     if (!token) return;
     setHistoryLoading(true);
     try {
-      const response = await fetch('/api/v1/payments/history', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/payments/history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
@@ -100,7 +100,10 @@ const StudentHome = () => {
 
   useEffect(() => {
     if (activeTab === 'payment') {
-      fetchPaymentHistory();
+      const timer = setTimeout(() => {
+        fetchPaymentHistory();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [activeTab]);
 
@@ -115,7 +118,7 @@ const StudentHome = () => {
     setError('');
 
     try {
-      const response = await fetch(`/api/v1/courses/${course.id}/enroll`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${course.id}/enroll`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -203,7 +206,7 @@ const StudentHome = () => {
     formData.append('slip', paymentSlip);
 
     try {
-      const response = await fetch('/api/v1/payments', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/payments`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -263,7 +266,7 @@ const StudentHome = () => {
 
     const loadCourses = async () => {
       try {
-        const response = await fetch('/api/v1/courses');
+        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -338,7 +341,7 @@ const StudentHome = () => {
         payload.password = profileForm.password;
       }
 
-      const response = await fetch('/api/v1/users/profile', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/users/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

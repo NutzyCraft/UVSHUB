@@ -26,7 +26,7 @@ function CourseDetail() {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const res = await fetch(`/api/v1/courses/${id}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${id}`);
         const data = await res.json();
         if (data.success) {
           setCourse(data.data);
