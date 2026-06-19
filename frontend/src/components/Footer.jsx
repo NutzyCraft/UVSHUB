@@ -29,35 +29,6 @@ function Footer() {
               An advanced learning platform designed for the builders of tomorrow.
             </p>
           </div>
-
-          <div>
-            <div className="footer__group-title">Modules</div>
-            <ul className="footer__links">
-              <li><Link to="/courses" className="footer__link">Web Development</Link></li>
-              <li><Link to="/courses" className="footer__link">Spatial Design</Link></li>
-              <li><Link to="/courses" className="footer__link">Machine Learning</Link></li>
-              <li><Link to="/courses" className="footer__link">Neural Networks</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="footer__group-title">Platform</div>
-            <ul className="footer__links">
-              <li><a href="#approach" className="footer__link">Architecture</a></li>
-              <li><a href="#instructors" className="footer__link">Operatives</a></li>
-              <li><a href="#pricing" className="footer__link">Licensing</a></li>
-              <li><Link to="/student/login" className="footer__link">Terminal Login</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="footer__group-title">Legal</div>
-            <ul className="footer__links">
-              <li><a href="#" className="footer__link">Privacy Protocol</a></li>
-              <li><a href="#" className="footer__link">Terms of Service</a></li>
-              <li><a href="#" className="footer__link">Cookie Matrix</a></li>
-            </ul>
-          </div>
         </div>
 
         <div className="footer__bottom">

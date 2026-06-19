@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import './Hero.css';
 import Magnetic from './ui/Magnetic';
-import SpotlightCard from './ui/SpotlightCard';
+
 
 function Hero() {
   return (
@@ -14,7 +14,7 @@ function Hero() {
       <div className="hero__content">
         <div className="hero__eyebrow">
           <div className="hero__eyebrow-pulse"><span /></div>
-          SYSTEM ONLINE // 1,160+ COURSES
+          SYSTEM ONLINE 
         </div>
 
         <h1 className="hero__title" id="hero-title">
@@ -23,8 +23,7 @@ function Hero() {
         </h1>
 
         <p className="hero__sub">
-          A spatial learning platform for curious minds. Master world-class courses,
-          earn verified certificates, and join the network of tomorrow's builders.
+          A spatial learning platform for curious minds. Master world-class courses and join the network of tomorrow's builders.
         </p>
 
         <div className="hero__actions" style={{ display: 'flex', gap: '16px' }}>
@@ -35,16 +34,14 @@ function Hero() {
           </Magnetic>
           <Magnetic strength={0.3}>
             <Link to="/courses" id="hero-cta-secondary" className="btn btn-outline btn-lg">
-              Browse Matrix
+              Browse Classes
             </Link>
           </Magnetic>
         </div>
       </div>
-
-      {/* 3D Glass Cards */}
+      {/*
       <div className="hero__cards" aria-label="Featured courses">
         
-        {/* Card 1 */}
         <SpotlightCard className="hero__glass-card" glowColor="rgba(143, 85, 255, 0.2)">
           <div id="hcard-1" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="hc-icon" style={{ color: 'var(--violet)' }}>
@@ -58,7 +55,6 @@ function Hero() {
           </div>
         </SpotlightCard>
 
-        {/* Card 2 (Center) */}
         <SpotlightCard className="hero__glass-card" glowColor="rgba(226, 255, 74, 0.2)">
           <div id="hcard-2" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="hc-icon" style={{ color: 'var(--accent)' }}>
@@ -72,7 +68,6 @@ function Hero() {
           </div>
         </SpotlightCard>
 
-        {/* Card 3 */}
         <SpotlightCard className="hero__glass-card" glowColor="rgba(45, 212, 191, 0.2)">
           <div id="hcard-3" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="hc-icon" style={{ color: 'var(--blue)' }}>
@@ -88,7 +83,8 @@ function Hero() {
 
         <div className="hero__bottom-fade" aria-hidden="true" />
       </div>
-
+      */}
+    
     </section>
   );
 }
