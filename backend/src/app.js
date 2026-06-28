@@ -17,6 +17,7 @@ const instructorRoutes = require('./routes/instructorRoutes');
 const cronRoutes = require('./routes/cronRoutes');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ── Security & utility middleware ───────────────────────────────────────────
 app.use(helmet());
