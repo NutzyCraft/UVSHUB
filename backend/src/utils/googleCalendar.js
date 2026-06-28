@@ -33,8 +33,8 @@ async function createClassEvent(title, startTime, endTime) {
 
   const event = {
     summary: title,
-    start: { dateTime: startTime },
-    end: { dateTime: endTime },
+    start: { dateTime: startTime, timeZone: 'Asia/Colombo' },
+    end: { dateTime: endTime, timeZone: 'Asia/Colombo' },
     recurrence: ['RRULE:FREQ=WEEKLY'],
     conferenceData: {
       createRequest: {
