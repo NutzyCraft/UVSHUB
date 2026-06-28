@@ -14,6 +14,7 @@ const userRoutes = require('./routes/userRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const instructorRoutes = require('./routes/instructorRoutes');
+const cronRoutes = require('./routes/cronRoutes');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/courses', courseRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/instructors', instructorRoutes);
+app.use('/api/v1/cron', cronRoutes);
 
 // ── Error handling ──────────────────────────────────────────────────────────
 app.use(notFound);

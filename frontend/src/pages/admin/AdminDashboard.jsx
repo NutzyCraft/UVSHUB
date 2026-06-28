@@ -21,6 +21,9 @@ const AdminDashboard = () => {
     price: '',
     medium: '',
     meetingLink: '',
+    startTime: '',
+    endTime: '',
+    day: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -272,12 +275,15 @@ const AdminDashboard = () => {
           price: courseForm.price,
           medium: courseForm.medium,
           meetingLink: courseForm.meetingLink,
+          day: courseForm.day,
+          startTime: courseForm.startTime || undefined,
+          endTime: courseForm.endTime || undefined,
         })
       });
       const data = await response.json();
       if (response.ok) {
         setSuccess('Course created successfully!');
-        setCourseForm({ name: '', instructor: '', grade: '', price: '', medium: '', meetingLink: '' });
+        setCourseForm({ name: '', instructor: '', grade: '', price: '', medium: '', meetingLink: '', startTime: '', endTime: '', day: '' });
         await fetchSubjects();
         setActiveTab('subjects');
       } else {
@@ -316,6 +322,9 @@ const AdminDashboard = () => {
       price: subject.Price?.toString() || '',
       medium: subject.Medium || '',
       meetingLink: subject.MeetingLink || '',
+      day: subject.Day || '',
+      startTime: subject.StartTime || '',
+      endTime: subject.EndTime || '',
     });
     setError('');
     setSuccess('');
@@ -349,12 +358,15 @@ const AdminDashboard = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: editingSubject.name,
-          instructor: editingSubject.instructor,
-          grade: editingSubject.grade,
-          price: editingSubject.price,
-          medium: editingSubject.medium,
-          meetingLink: editingSubject.meetingLink,
+          name: editingSubject.name || '',
+          grade: editingSubject.grade || '',
+          price: editingSubject.price || '',
+          medium: editingSubject.medium || '',
+          meetingLink: editingSubject.meetingLink || '',
+          day: editingSubject.day || '',
+          instructor: editingSubject.instructor || '',
+          startTime: editingSubject.startTime || '',
+          endTime: editingSubject.endTime || '',
         }),
       });
 
@@ -624,7 +636,28 @@ const AdminDashboard = () => {
                       </select>
                     </div>
                     <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Meeting Link</label>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Day of the Week</label>
+                      <select value={courseForm.day} onChange={e => setCourseForm({...courseForm, day: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} required>
+                        <option value="" disabled>Select Day</option>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                      </select>
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Start Time</label>
+                      <input type="time" value={courseForm.startTime || ''} onChange={e => setCourseForm({...courseForm, startTime: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', colorScheme: 'dark' }} required />
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>End Time</label>
+                      <input type="time" value={courseForm.endTime || ''} onChange={e => setCourseForm({...courseForm, endTime: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', colorScheme: 'dark' }} required />
+                    </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Meeting Link (Optional - Auto-generated if times are provided)</label>
                       <input type="url" value={courseForm.meetingLink} onChange={e => setCourseForm({...courseForm, meetingLink: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} placeholder="https://meet..." />
                     </div>
                     <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
@@ -812,8 +845,32 @@ const AdminDashboard = () => {
                   </select>
                 </div>
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Day of the Week</label>
+                  <select name="day" value={editingSubject.day || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }}>
+                    <option value="" disabled>Select Day</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                  </select>
+                </div>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Meeting Link</label>
                   <input type="url" name="meetingLink" value={editingSubject.meetingLink} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                </div>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Start Time</label>
+                  <input type="time" name="startTime" value={editingSubject.startTime || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                </div>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>End Time</label>
+                  <input type="time" name="endTime" value={editingSubject.endTime || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                </div>
+                <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--ink-3)', marginTop: '-10px' }}>
+                  Note: Providing a Start and End Time will automatically generate and update the Google Meet Link.
                 </div>
                 <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '16px' }}>
                   <button type="button" onClick={() => setEditingSubject(null)} className="btn btn-outline" style={{ flex: 1, padding: '12px' }}>CANCEL</button>

@@ -7,11 +7,12 @@ datasource db {
 }
 
 model Enrollments {
-  id           BigInt   @id @default(autoincrement())
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  Student_ID   BigInt?
-  Studnet_Name String?
-  Subject_Name String?
+  id              BigInt    @id @default(autoincrement())
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  Student_ID      BigInt?
+  Studnet_Name    String?
+  Subject_Name    String?
+  AccessExpiresAt DateTime? @db.Timestamptz(6)
 
   @@unique([Student_ID, Subject_Name], map: "Enrollments_Student_Subject_key")
 }
@@ -51,6 +52,10 @@ model Subjects {
   Instructor  String
   Medium      String
   MeetingLink String
+  CalendarEventId String?
+  Day         String?
+  StartTime   String?
+  EndTime     String?
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

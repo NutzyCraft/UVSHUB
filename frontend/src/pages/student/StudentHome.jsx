@@ -107,6 +107,43 @@ const StudentHome = () => {
     }
   }, [activeTab]);
 
+  const [unenrollingId, setUnenrollingId] = useState(null);
+
+  const handleUnenroll = async (course) => {
+    if (!window.confirm(`Are you sure you want to unenroll from ${course.Name || course.Subject_Name}?`)) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/student/login');
+      return;
+    }
+
+    setUnenrollingId(course.id);
+    setError('');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${course.id}/enroll`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const studentId = student?.id;
+        await fetchProfile(studentId, token);
+      } else {
+        setError(data.message || 'Failed to unenroll');
+      }
+    } catch {
+      setError('Connection error during unenrollment');
+    } finally {
+      setUnenrollingId(null);
+    }
+  };
+
   const handleEnroll = async (course) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -200,7 +237,7 @@ const StudentHome = () => {
     setError('');
 
     const formData = new FormData();
-    formData.append('subjectName', selectedCourseForPayment.Name);
+    formData.append('subjectName', selectedCourseForPayment.Subject_Name || selectedCourseForPayment.Name);
     formData.append('amount', selectedCourseForPayment.Price);
     formData.append('method', paymentMethod);
     formData.append('slip', paymentSlip);
@@ -404,12 +441,6 @@ const StudentHome = () => {
           const isEnrolled = enrolledSubjects.some(
             (enrollment) => enrollment.Subject_Name === (subject.Subject_Name || subject.Name)
           );
-
-          const paymentForSubject = (student.payments || []).find(
-            (payment) => payment.Subject === (subject.Subject_Name || subject.Name)
-          );
-          const paymentStatus = paymentForSubject ? paymentForSubject.Status : null;
-
           return (
             <article className="dash-course" key={subject.id || subject.Subject_Name || subject.Name || `${emptyTitle}-${index}`} style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
               <div className="dash-course-info" style={{ width: '100%' }}>
@@ -422,49 +453,112 @@ const StudentHome = () => {
                   <span>Grade {subject.Grade ?? 'N/A'}</span>
                   <span>•</span>
                   <span>{subject.Medium ?? 'Unknown'}</span>
+                  {subject.Day && (
+                    <>
+                      <span>•</span>
+                      <span>{subject.Day}</span>
+                    </>
+                  )}
                   <span>•</span>
                   <span>Instructor: {subject.InstructorName || subject.Instructor || 'Unknown'}</span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  {showEnrollButton && (
+                  {!isEnrolled && showEnrollButton && (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={enrollingId === subject.id}
+                      onClick={() => handleEnroll(subject)}
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                    >
+                      {enrollingId === subject.id ? 'PROCESSING...' : ' ENROLL '}
+                    </button>
+                  )}
+
+                  {isEnrolled && (
                     <>
                       <button
                         type="button"
                         className="btn btn-primary"
-                        disabled={isEnrolled || enrollingId === subject.id}
-                        onClick={() => handleEnroll(subject)}
+                        disabled
                         style={{ padding: '8px 16px', fontSize: '12px' }}
                       >
-                        {isEnrolled ? 'ENROLLED' : enrollingId === subject.id ? 'PROCESSING...' : ' ENROLL '}
+                        ENROLLED
                       </button>
-                      {paymentStatus === 'Pending' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px' }}>PENDING</button>}
-                      {paymentStatus === 'Approved' && <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--accent)', borderColor: 'var(--accent)' }}>APPROVED</button>}
-                      {paymentStatus === 'Rejected' && <button type="button" className="btn btn-outline" onClick={() => handlePayNow(subject)} style={{ padding: '8px 16px', fontSize: '12px', color: '#FF5A65', borderColor: '#FF5A65' }}>REJECTED (PAY NOW)</button>}
-                      {!paymentStatus && (
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          disabled={payingId === subject.id}
-                          onClick={() => handlePayNow(subject)}
-                          style={{ padding: '8px 16px', fontSize: '12px' }}
-                        >
-                          {payingId === subject.id ? 'PROCESSING...' : 'PROCESS PAYMENT'}
-                        </button>
-                      )}
-                    </>
-                  )}
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        disabled={unenrollingId === subject.id}
+                        onClick={() => handleUnenroll(subject)}
+                        style={{ padding: '8px 16px', fontSize: '12px', color: '#FF5A65', borderColor: '#FF5A65' }}
+                      >
+                        {unenrollingId === subject.id ? 'UNENROLLING...' : 'UNENROLL'}
+                      </button>
 
-                  {(paymentStatus === 'Approved' || isEnrolled) && subject.MeetingLink && (
-                    <a 
-                      href={subject.MeetingLink} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="btn btn-primary"
-                      style={{ padding: '8px 16px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      JOIN MEETING
-                    </a>
+                      {(() => {
+                        const enrollment = enrolledSubjects.find(e => e.Subject_Name === (subject.Subject_Name || subject.Name));
+                        const expiresAt = enrollment?.AccessExpiresAt ? new Date(enrollment.AccessExpiresAt) : null;
+                        const isExpired = !expiresAt || expiresAt < new Date();
+                        const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24))) : 0;
+                        
+                        const sortedPayments = [...(student.payments || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                        const latestPayment = sortedPayments.find(p => p.Subject === (subject.Subject_Name || subject.Name));
+                        const latestStatus = latestPayment ? latestPayment.Status : null;
+
+                        if (!isExpired) {
+                          return (
+                            <>
+                              <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--accent)', borderColor: 'var(--accent)' }}>
+                                APPROVED
+                              </button>
+                              {subject.MeetingLink && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <a 
+                                    href={subject.MeetingLink} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="btn btn-primary"
+                                    style={{ padding: '8px 16px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                                  >
+                                    JOIN MEETING
+                                  </a>
+                                  <span style={{ fontSize: '11px', fontFamily: 'var(--mono)', color: daysLeft <= 5 ? '#f59e0b' : 'var(--ink-3)', padding: '4px 8px', borderRadius: '4px', background: daysLeft <= 5 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${daysLeft <= 5 ? 'rgba(245, 158, 11, 0.3)' : 'var(--border)'}` }}>
+                                    {daysLeft}d left
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        } else {
+                          if (latestStatus === 'Pending') {
+                            return (
+                              <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px' }}>
+                                PENDING
+                              </button>
+                            );
+                          }
+                          if (latestStatus === 'Rejected') {
+                            return (
+                              <button type="button" className="btn btn-outline" onClick={() => handlePayNow(subject)} style={{ padding: '8px 16px', fontSize: '12px', color: '#FF5A65', borderColor: '#FF5A65' }}>
+                                REJECTED (PAY NOW)
+                              </button>
+                            );
+                          }
+                          return (
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              disabled={payingId === subject.id}
+                              onClick={() => handlePayNow(subject)}
+                              style={{ padding: '8px 16px', fontSize: '12px', color: '#f59e0b', borderColor: '#f59e0b' }}
+                            >
+                              {payingId === subject.id ? 'PROCESSING...' : 'UPDATE PAYMENT'}
+                            </button>
+                          );
+                        }
+                      })()}
+                    </>
                   )}
                 </div>
               </div>
@@ -730,9 +824,9 @@ const StudentHome = () => {
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     required
                   >
-                    <option value="Bank Transfer" style={{ color: '#000' }}>Bank Transfer</option>
-                    <option value="Card" style={{ color: '#000' }}>Card</option>
-                    <option value="Cash" style={{ color: '#000' }}>Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Card">Card</option>
+                    <option value="Cash">Cash</option>
                   </select>
                 </div>
 

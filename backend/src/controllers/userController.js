@@ -74,6 +74,7 @@ const getUser = async (req, res) => {
       ...enrollment,
       id: enrollment.id.toString(),
       Student_ID: enrollment.Student_ID ? enrollment.Student_ID.toString() : null,
+      AccessExpiresAt: enrollment.AccessExpiresAt ? enrollment.AccessExpiresAt.toISOString() : null,
       Grade: subjectInfo ? parseFloat(subjectInfo.Grade) : null,
       Medium: subjectInfo ? subjectInfo.Medium : 'Unknown',
       Price: subjectInfo ? parseFloat(subjectInfo.Price) : null,

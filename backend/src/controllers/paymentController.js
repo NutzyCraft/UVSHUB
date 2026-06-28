@@ -1,6 +1,7 @@
 const { prisma } = require('../config/db');
 const supabaseAdmin = require('../config/supabaseAdminClient');
 const { getSignedUrlIfNeeded } = require('../config/storageHelper');
+const { addStudentToClass } = require('../utils/googleCalendar');
 
 /**
  * @desc    Get all payments
@@ -69,22 +70,46 @@ const approvePayment = async (req, res) => {
   });
 
   if (existingEnrollment) {
+    // Renew the 28-day access window
+    const accessExpiresAt = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000);
+
     await prisma.payments.update({
       where: { id: paymentId },
       data: { Status: 'Approved' }
     });
+
+    await prisma.enrollments.update({
+      where: { id: existingEnrollment.id },
+      data: { AccessExpiresAt: accessExpiresAt }
+    });
+
+    // Still invite to Meet even if already enrolled
+    try {
+      const subject = await prisma.subjects.findFirst({
+        where: { Name: payment.Subject }
+      });
+      if (subject?.CalendarEventId && student.Email) {
+        await addStudentToClass(subject.CalendarEventId, student.Email);
+      }
+    } catch (calendarError) {
+      console.error('⚠️ Failed to invite student to Google Meet:', calendarError.message);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Payment approved, but student was already enrolled.'
     });
   }
 
-  // Create enrollment
+  // Create enrollment with 28-day access window
+  const accessExpiresAt = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000);
+
   const enrollment = await prisma.enrollments.create({
     data: {
       Student_ID: payment.Student_ID,
       Studnet_Name: student.Name,
-      Subject_Name: payment.Subject
+      Subject_Name: payment.Subject,
+      AccessExpiresAt: accessExpiresAt
     }
   });
 
@@ -93,6 +118,21 @@ const approvePayment = async (req, res) => {
     where: { id: paymentId },
     data: { Status: 'Approved' }
   });
+
+  // Invite the student to the Google Meet for this course
+  try {
+    const subject = await prisma.subjects.findFirst({
+      where: { Name: payment.Subject }
+    });
+
+    if (subject?.CalendarEventId && student.Email) {
+      await addStudentToClass(subject.CalendarEventId, student.Email);
+      console.log(`✅ Student ${student.Email} invited to Meet for "${payment.Subject}"`);
+    }
+  } catch (calendarError) {
+    console.error('⚠️ Failed to invite student to Google Meet:', calendarError.message);
+    // Fail-open: enrollment is the source of truth, not the calendar invite
+  }
 
   res.status(200).json({
     success: true,
