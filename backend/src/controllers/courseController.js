@@ -133,15 +133,25 @@ const createCourse = async (req, res) => {
   let generatedMeetLink = meetingLink || '';
 
   try {
-    const toISO = (timeStr) => {
+    const toISO = (timeStr, dayName) => {
       if (timeStr.includes('T')) return timeStr;
       const d = new Date();
+      if (dayName) {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const targetDay = days.indexOf(dayName);
+        if (targetDay !== -1) {
+          const currentDay = d.getDay();
+          let distance = targetDay - currentDay;
+          if (distance < 0) distance += 7; 
+          d.setDate(d.getDate() + distance);
+        }
+      }
       const [h, m] = timeStr.split(':');
       d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
       return d.toISOString();
     };
 
-    const calendarResult = await createClassEvent(name || title, toISO(startTime), toISO(endTime));
+    const calendarResult = await createClassEvent(name || title, toISO(startTime, day), toISO(endTime, day));
     calendarEventId = calendarResult.eventId;
     generatedMeetLink = calendarResult.meetLink || generatedMeetLink;
     console.log(`✅ Google Meet link generated: ${generatedMeetLink}`);
@@ -225,15 +235,26 @@ const updateCourse = async (req, res) => {
 
   if (startTime && endTime) {
     try {
-      const toISO = (timeStr) => {
+      const toISO = (timeStr, dayName) => {
         if (timeStr.includes('T')) return timeStr;
         const d = new Date();
+        if (dayName) {
+          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const targetDay = days.indexOf(dayName);
+          if (targetDay !== -1) {
+            const currentDay = d.getDay();
+            let distance = targetDay - currentDay;
+            if (distance < 0) distance += 7; 
+            d.setDate(d.getDate() + distance);
+          }
+        }
         const [h, m] = timeStr.split(':');
         d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
         return d.toISOString();
       };
       
-      const calendarResult = await createClassEvent(updateData.Name || course.Name, toISO(startTime), toISO(endTime));
+      const targetDay = updateData.Day || course.Day;
+      const calendarResult = await createClassEvent(updateData.Name || course.Name, toISO(startTime, targetDay), toISO(endTime, targetDay));
       calendarEventId = calendarResult.eventId;
       generatedMeetLink = calendarResult.meetLink || generatedMeetLink;
       console.log(`✅ New Google Meet link generated on edit: ${generatedMeetLink}`);

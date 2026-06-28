@@ -2,37 +2,20 @@ const { google } = require('googleapis');
 const path = require('path');
 
 /**
- * Build an authenticated Google Calendar client using the service account.
- *
- * Supports two credential strategies:
- *  1. GOOGLE_APPLICATION_CREDENTIALS_JSON  – base64-encoded JSON (for serverless)
- *  2. GOOGLE_APPLICATION_CREDENTIALS       – file path (local / VM)
+ * Build an authenticated Google Calendar client using OAuth 2.0.
+ * Requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN in .env.
  */
 function getCalendarClient() {
-  let auth;
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
 
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    // Serverless: credentials stored as a base64-encoded env var
-    const credentials = JSON.parse(
-      Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON, 'base64').toString('utf-8')
-    );
-    auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/calendar'],
-    });
-  } else {
-    // Local / VM: credentials file path
-    const keyFilePath = path.resolve(
-      process.cwd(),
-      process.env.GOOGLE_APPLICATION_CREDENTIALS || ''
-    );
-    auth = new google.auth.GoogleAuth({
-      keyFile: keyFilePath,
-      scopes: ['https://www.googleapis.com/auth/calendar'],
-    });
-  }
+  oauth2Client.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+  });
 
-  return google.calendar({ version: 'v3', auth });
+  return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
@@ -52,6 +35,7 @@ async function createClassEvent(title, startTime, endTime) {
     summary: title,
     start: { dateTime: startTime },
     end: { dateTime: endTime },
+    recurrence: ['RRULE:FREQ=WEEKLY'],
     conferenceData: {
       createRequest: {
         requestId: `uvshub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
