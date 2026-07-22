@@ -1,4 +1,5 @@
 const supabase = require('../config/supabaseClient');
+const supabaseAdmin = require('../config/supabaseAdminClient');
 const { prisma } = require('../config/db');
 
 /**
@@ -143,4 +144,70 @@ const getMe = async (req, res) => {
   res.status(200).json({ success: true, user: serializedStudent });
 };
 
-module.exports = { register, login, getMe };
+/**
+ * @desc    Forgot Password - Sends reset email
+ * @route   POST /api/v1/auth/forgot-password
+ * @access  Public
+ */
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    const error = new Error('Please provide an email');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.CLIENT_URL || 'http://localhost:5173'}/student/reset-password`,
+  });
+
+  if (resetError) {
+    const error = new Error(resetError.message);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  res.status(200).json({ success: true, message: 'Password reset email sent' });
+};
+
+/**
+ * @desc    Reset Password - Updates user password using access token
+ * @route   POST /api/v1/auth/reset-password
+ * @access  Public
+ */
+const resetPassword = async (req, res) => {
+  const { access_token, new_password } = req.body;
+
+  if (!access_token || !new_password) {
+    const error = new Error('Token and new password are required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Verify the access token to get the user ID
+  const { data: userData, error: userError } = await supabase.auth.getUser(access_token);
+
+  if (userError || !userData?.user) {
+    const error = new Error('Invalid or expired token');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const userId = userData.user.id;
+
+  // Update password using the Supabase Admin client
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    password: new_password,
+  });
+
+  if (updateError) {
+    const error = new Error(updateError.message);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  res.status(200).json({ success: true, message: 'Password has been updated' });
+};
+
+module.exports = { register, login, getMe, forgotPassword, resetPassword };
