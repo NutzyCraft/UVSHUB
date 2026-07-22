@@ -76,7 +76,7 @@ function About() {
             <div className="about-hero__text">
               <span className="about-hero__badge">Meet The Brains Behind The Grades</span>
               <h1 className="about-hero__title">
-                Hi, I'm <span className="text-gradient">Ulindu</span>
+                Hi, I&apos;m <span className="text-gradient">Ulindu</span>
               </h1>
               <p className="about-hero__subtitle">
                 An experienced ICT teacher, technologist, and entrepreneur dedicated to empowering the next generation of tech leaders.
