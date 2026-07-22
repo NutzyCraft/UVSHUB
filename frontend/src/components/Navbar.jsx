@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { id: 'nav-approach',   label: 'Approach',   href: '#approach'   },
   { id: 'nav-instructor', label: 'Instructors', href: '#instructors' },
   { id: 'nav-courses',    label: 'Courses',     href: '#courses'    },
+  { id: 'nav-about',      label: 'About',      href: '/about'      },
 ];
 
 const LogoMark = ({ size = 14, dark = true }) => (
