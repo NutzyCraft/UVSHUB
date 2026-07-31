@@ -20,9 +20,7 @@ function Footer() {
         <div className="footer__nav">
           <div className="footer__brand">
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-              <div style={{ width: '24px', height: '24px', background: 'var(--white)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <LogoMark size={10} dark={false} />
-              </div>
+              <LogoMark size={32} />
               <span style={{ fontFamily: 'var(--mono)', fontSize: '14px', fontWeight: 600, color: 'var(--white)', letterSpacing: '0.1em' }}>UVSHUB</span>
             </Link>
             <p className="footer__brand-text">

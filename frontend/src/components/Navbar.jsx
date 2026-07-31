@@ -9,11 +9,14 @@ const NAV_LINKS = [
   { id: 'nav-about',      label: 'About',      href: '/about'      },
 ];
 
-const LogoMark = ({ size = 14, dark = true }) => (
-  <svg width={size} height={size} viewBox="0 0 18 18" fill="none">
-    <path d="M9 1.5L16 5.5V12.5L9 16.5L2 12.5V5.5L9 1.5Z" fill={dark ? 'white' : 'var(--bg)'} />
-    <path d="M9 6L12.5 8V12L9 14L5.5 12V8L9 6Z" fill={dark ? 'rgba(255,255,255,0.25)' : 'rgba(3,3,4,0.2)'} />
-  </svg>
+import logoLight from '../assets/logo.png';
+import logoDark from '../assets/logo - dark.png';
+
+const LogoMark = ({ size = 32 }) => (
+  <>
+    <img src={logoDark} alt="UVSHUB Logo" width={size} height={size} style={{ objectFit: 'contain' }} className="logo-dark-mode" />
+    <img src={logoLight} alt="UVSHUB Logo" width={size} height={size} style={{ objectFit: 'contain' }} className="logo-light-mode" />
+  </>
 );
 
 export { LogoMark };

@@ -196,3 +196,9 @@ img, svg { display: block; max-width: 100%; }
   0%, 100% { opacity: 0.5; transform: scale(1); filter: blur(60px); }
   50% { opacity: 0.8; transform: scale(1.1); filter: blur(80px); }
 }
+
+/* ── Logo Theme Switching ────────────────────────────────────────────────── */
+.logo-dark-mode { display: block; }
+.logo-light-mode { display: none; }
+[data-theme='light'] .logo-dark-mode { display: none !important; }
+[data-theme='light'] .logo-light-mode { display: block !important; }

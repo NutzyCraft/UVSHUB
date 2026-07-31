@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import './Hero.css';
 import Magnetic from './ui/Magnetic';
+import { LogoMark } from './Navbar';
 
 
 function Hero() {
@@ -12,6 +13,9 @@ function Hero() {
 
       {/* Main content */}
       <div className="hero__content">
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+          <LogoMark size={180} />
+        </div>
         <div className="hero__eyebrow">
           <div className="hero__eyebrow-pulse"><span /></div>
           SYSTEM ONLINE 
