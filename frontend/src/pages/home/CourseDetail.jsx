@@ -54,7 +54,7 @@ function CourseDetail() {
   const duration = "4h 30m";
   const rating = 4.8;
   const reviewCount = 1250;
-  const thumb = "https://images.unsplash.com/photo-1610563166150-b34df4f3bcd6?auto=format&fit=crop&w=600&q=80";
+  const thumb = course.Image || "https://images.unsplash.com/photo-1610563166150-b34df4f3bcd6?auto=format&fit=crop&w=600&q=80";
   const avatar = "https://i.pravatar.cc/150?u=" + id; // Mock avatar
   const originalPrice = null;
 

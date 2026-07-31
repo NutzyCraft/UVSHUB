@@ -24,6 +24,7 @@ const AdminDashboard = () => {
     startTime: '',
     endTime: '',
     day: '',
+    image: null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -262,28 +263,29 @@ const AdminDashboard = () => {
     setLoading(true);
 
     try {
+      const formData = new FormData();
+      formData.append('name', courseForm.name);
+      formData.append('instructor', courseForm.instructor);
+      formData.append('grade', courseForm.grade);
+      formData.append('price', courseForm.price);
+      formData.append('medium', courseForm.medium);
+      formData.append('day', courseForm.day);
+      if (courseForm.meetingLink) formData.append('meetingLink', courseForm.meetingLink);
+      if (courseForm.startTime) formData.append('startTime', courseForm.startTime);
+      if (courseForm.endTime) formData.append('endTime', courseForm.endTime);
+      if (courseForm.image) formData.append('image', courseForm.image);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: courseForm.name,
-          instructor: courseForm.instructor,
-          grade: courseForm.grade,
-          price: courseForm.price,
-          medium: courseForm.medium,
-          meetingLink: courseForm.meetingLink,
-          day: courseForm.day,
-          startTime: courseForm.startTime || undefined,
-          endTime: courseForm.endTime || undefined,
-        })
+        body: formData
       });
       const data = await response.json();
       if (response.ok) {
         setSuccess('Course created successfully!');
-        setCourseForm({ name: '', instructor: '', grade: '', price: '', medium: '', meetingLink: '', startTime: '', endTime: '', day: '' });
+        setCourseForm({ name: '', instructor: '', grade: '', price: '', medium: '', meetingLink: '', startTime: '', endTime: '', day: '', image: null });
         await fetchSubjects();
         setActiveTab('subjects');
       } else {
@@ -325,6 +327,7 @@ const AdminDashboard = () => {
       day: subject.Day || '',
       startTime: subject.StartTime || '',
       endTime: subject.EndTime || '',
+      image: null,
     });
     setError('');
     setSuccess('');
@@ -351,23 +354,24 @@ const AdminDashboard = () => {
     setSuccess('');
 
     try {
+      const formData = new FormData();
+      if (editingSubject.name) formData.append('name', editingSubject.name);
+      if (editingSubject.grade) formData.append('grade', editingSubject.grade);
+      if (editingSubject.price) formData.append('price', editingSubject.price);
+      if (editingSubject.medium) formData.append('medium', editingSubject.medium);
+      if (editingSubject.day) formData.append('day', editingSubject.day);
+      if (editingSubject.instructor) formData.append('instructor', editingSubject.instructor);
+      if (editingSubject.meetingLink) formData.append('meetingLink', editingSubject.meetingLink);
+      if (editingSubject.startTime) formData.append('startTime', editingSubject.startTime);
+      if (editingSubject.endTime) formData.append('endTime', editingSubject.endTime);
+      if (editingSubject.image) formData.append('image', editingSubject.image);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${editingSubject.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          name: editingSubject.name || '',
-          grade: editingSubject.grade || '',
-          price: editingSubject.price || '',
-          medium: editingSubject.medium || '',
-          meetingLink: editingSubject.meetingLink || '',
-          day: editingSubject.day || '',
-          instructor: editingSubject.instructor || '',
-          startTime: editingSubject.startTime || '',
-          endTime: editingSubject.endTime || '',
-        }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -660,6 +664,10 @@ const AdminDashboard = () => {
                       <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Meeting Link (Optional - Auto-generated if times are provided)</label>
                       <input type="url" value={courseForm.meetingLink} onChange={e => setCourseForm({...courseForm, meetingLink: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} placeholder="https://meet..." />
                     </div>
+                    <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subject Image</label>
+                      <input type="file" accept="image/*" onChange={e => setCourseForm({...courseForm, image: e.target.files[0]})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                    </div>
                     <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
                       <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '14px 32px' }}>{loading ? 'CREATING...' : 'INITIALIZE MODULE'}</button>
                     </div>
@@ -868,6 +876,10 @@ const AdminDashboard = () => {
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>End Time</label>
                   <input type="time" name="endTime" value={editingSubject.endTime || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                </div>
+                <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subject Image (Optional)</label>
+                  <input type="file" name="image" accept="image/*" onChange={(e) => setEditingSubject({...editingSubject, image: e.target.files[0]})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
                 </div>
                 <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--ink-3)', marginTop: '-10px' }}>
                   Note: Providing a Start and End Time will automatically generate and update the Google Meet Link.

@@ -1,5 +1,10 @@
 const { prisma } = require('../config/db');
 const { createClassEvent, removeStudentFromClass } = require('../utils/googleCalendar');
+const { createClient } = require('@supabase/supabase-js');
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper to check if a string is a valid UUID
 const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -160,6 +165,33 @@ const createCourse = async (req, res) => {
     // Fail-open: course is still created without a Meet link
   }
 
+  let imageUrl = null;
+  if (req.file) {
+    try {
+      const file = req.file;
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('Subjects')
+        .upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+        });
+
+      if (uploadError) {
+        throw new Error(`Failed to upload image: ${uploadError.message}`);
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('Subjects')
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrl;
+    } catch (uploadErr) {
+      console.error('⚠️ Failed to upload image:', uploadErr.message);
+    }
+  }
+
   const course = await prisma.subjects.create({
     data: {
       Name: name || title, 
@@ -171,7 +203,8 @@ const createCourse = async (req, res) => {
       Instructor: instructorValue,
       Day: day || null,
       StartTime: startTime || null,
-      EndTime: endTime || null
+      EndTime: endTime || null,
+      Image: imageUrl
     }
   });
 
@@ -229,6 +262,32 @@ const updateCourse = async (req, res) => {
   if (startTime !== undefined) updateData.StartTime = startTime;
   if (endTime !== undefined) updateData.EndTime = endTime;
   if (isAdmin && instructor !== undefined) updateData.Instructor = String(instructor).trim();
+
+  if (req.file) {
+    try {
+      const file = req.file;
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('Subjects')
+        .upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+        });
+
+      if (uploadError) {
+        throw new Error(`Failed to upload image: ${uploadError.message}`);
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('Subjects')
+        .getPublicUrl(fileName);
+
+      updateData.Image = publicUrl;
+    } catch (uploadErr) {
+      console.error('⚠️ Failed to upload image:', uploadErr.message);
+    }
+  }
 
   let generatedMeetLink = meetingLink !== undefined ? meetingLink : course.MeetingLink;
   let calendarEventId = course.CalendarEventId;

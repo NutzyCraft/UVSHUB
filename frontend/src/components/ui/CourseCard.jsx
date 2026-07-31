@@ -42,7 +42,7 @@ function CourseCard({ course }) {
   }
 
   // Aesthetic Placeholders for Spatial 2028 design
-  const thumb = "https://images.unsplash.com/photo-1610563166150-b34df4f3bcd6?auto=format&fit=crop&w=600&q=80";
+  const thumb = course.Image || "https://images.unsplash.com/photo-1610563166150-b34df4f3bcd6?auto=format&fit=crop&w=600&q=80";
   const badge = null;
   const badgeCls = '';
 
