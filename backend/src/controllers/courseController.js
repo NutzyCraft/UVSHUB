@@ -15,13 +15,19 @@ const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
  * @access  Public
  */
 const getCourses = async (req, res) => {
-  const { category, level, search } = req.query;
+  const { category, level, search, all, includeHidden } = req.query;
   const filter = {};
 
   // Map Mongoose filters to Prisma Subject schema
   if (category) filter.Medium = category;
   if (level) filter.Grade = parseFloat(level);
   if (search) filter.Name = { contains: search, mode: 'insensitive' };
+
+  // By default, public/students only see non-hidden courses
+  const showAll = all === 'true' || includeHidden === 'true';
+  if (!showAll) {
+    filter.IsHidden = false;
+  }
 
   const courses = await prisma.subjects.findMany({
     where: filter,
@@ -47,6 +53,7 @@ const getCourses = async (req, res) => {
       id: course.id.toString(),
       Grade: parseFloat(course.Grade),
       Price: parseFloat(course.Price),
+      IsHidden: Boolean(course.IsHidden),
       InstructorName: instructorName,
       instructor: instructorInfo || { id: course.Instructor, name: instructorName }
     };
@@ -94,6 +101,7 @@ const getCourse = async (req, res) => {
     id: course.id.toString(),
     Grade: parseFloat(course.Grade),
     Price: parseFloat(course.Price),
+    IsHidden: Boolean(course.IsHidden),
     InstructorName: instructor?.Name || course.Instructor || 'Unknown',
     instructor: instructor || { id: course.Instructor, name: course.Instructor || 'Unknown' }
   };
@@ -108,7 +116,7 @@ const getCourse = async (req, res) => {
  */
 const createCourse = async (req, res) => {
   // Support both old API payloads and new mapped schema
-  const { title, name, level, grade, category, medium, price, meetingLink, instructor, startTime, endTime, day } = req.body;
+  const { title, name, level, grade, category, medium, price, meetingLink, instructor, startTime, endTime, day, isHidden, IsHidden } = req.body;
 
   if (!name && !title) {
     const error = new Error('Course name is required');
@@ -139,22 +147,26 @@ const createCourse = async (req, res) => {
 
   try {
     const toISO = (timeStr, dayName) => {
-      if (timeStr.includes('T')) return timeStr;
-      const d = new Date();
-      if (dayName) {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const targetDay = days.indexOf(dayName);
-        if (targetDay !== -1) {
-          const currentDay = d.getDay();
-          let distance = targetDay - currentDay;
-          if (distance < 0) distance += 7; 
-          d.setDate(d.getDate() + distance);
+        if (timeStr.includes('T')) return timeStr;
+        // Get current date/time in Colombo timezone
+        const d = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
+        if (dayName) {
+          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const targetDay = days.indexOf(dayName);
+          if (targetDay !== -1) {
+            const currentDay = d.getDay();
+            let distance = targetDay - currentDay;
+            if (distance < 0) distance += 7; 
+            d.setDate(d.getDate() + distance);
+          }
         }
-      }
-      const [h, m] = timeStr.split(':');
-      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
-      return d.toISOString();
-    };
+        const [h, m] = timeStr.split(':');
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const date = String(d.getDate()).padStart(2, '0');
+        // Return without 'Z' so Google Calendar uses the provided timeZone
+        return `${year}-${month}-${date}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
+      };
 
     const calendarResult = await createClassEvent(name || title, toISO(startTime, day), toISO(endTime, day));
     calendarEventId = calendarResult.eventId;
@@ -192,6 +204,8 @@ const createCourse = async (req, res) => {
     }
   }
 
+  const isHiddenVal = isHidden === 'true' || isHidden === true || IsHidden === 'true' || IsHidden === true;
+
   const course = await prisma.subjects.create({
     data: {
       Name: name || title, 
@@ -204,7 +218,8 @@ const createCourse = async (req, res) => {
       Day: day || null,
       StartTime: startTime || null,
       EndTime: endTime || null,
-      Image: imageUrl
+      Image: imageUrl,
+      IsHidden: isHiddenVal
     }
   });
 
@@ -213,6 +228,7 @@ const createCourse = async (req, res) => {
     id: course.id.toString(),
     Grade: parseFloat(course.Grade),
     Price: parseFloat(course.Price),
+    IsHidden: Boolean(course.IsHidden),
   };
 
   res.status(201).json({ success: true, data: serializedCourse });
@@ -252,7 +268,7 @@ const updateCourse = async (req, res) => {
     throw error;
   }
 
-  const { title, name, level, grade, category, medium, price, meetingLink, instructor, day, startTime, endTime } = req.body;
+  const { title, name, level, grade, category, medium, price, meetingLink, instructor, day, startTime, endTime, isHidden, IsHidden } = req.body;
   const updateData = {};
   if (name || title) updateData.Name = name || title;
   if (grade || level) updateData.Grade = String(parseFloat(grade || level));
@@ -262,6 +278,11 @@ const updateCourse = async (req, res) => {
   if (startTime !== undefined) updateData.StartTime = startTime;
   if (endTime !== undefined) updateData.EndTime = endTime;
   if (isAdmin && instructor !== undefined) updateData.Instructor = String(instructor).trim();
+  if (isHidden !== undefined) {
+    updateData.IsHidden = isHidden === 'true' || isHidden === true;
+  } else if (IsHidden !== undefined) {
+    updateData.IsHidden = IsHidden === 'true' || IsHidden === true;
+  }
 
   if (req.file) {
     try {
@@ -296,7 +317,8 @@ const updateCourse = async (req, res) => {
     try {
       const toISO = (timeStr, dayName) => {
         if (timeStr.includes('T')) return timeStr;
-        const d = new Date();
+        // Get current date/time in Colombo timezone
+        const d = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
         if (dayName) {
           const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
           const targetDay = days.indexOf(dayName);
@@ -308,8 +330,11 @@ const updateCourse = async (req, res) => {
           }
         }
         const [h, m] = timeStr.split(':');
-        d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
-        return d.toISOString();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const date = String(d.getDate()).padStart(2, '0');
+        // Return without 'Z' so Google Calendar uses the provided timeZone
+        return `${year}-${month}-${date}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
       };
       
       const targetDay = updateData.Day || course.Day;
@@ -339,6 +364,7 @@ const updateCourse = async (req, res) => {
     id: course.id.toString(),
     Grade: parseFloat(course.Grade),
     Price: parseFloat(course.Price),
+    IsHidden: Boolean(course.IsHidden),
   };
 
   res.status(200).json({ success: true, data: serializedCourse });

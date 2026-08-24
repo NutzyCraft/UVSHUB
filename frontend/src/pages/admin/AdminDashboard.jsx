@@ -25,12 +25,14 @@ const AdminDashboard = () => {
     endTime: '',
     day: '',
     image: null,
+    isHidden: false,
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [viewingSlipUrl, setViewingSlipUrl] = useState(null);
+  const [togglingSubjectId, setTogglingSubjectId] = useState(null);
   const navigate = useNavigate();
 
   const fetchStudents = async (token) => {
@@ -56,8 +58,11 @@ const AdminDashboard = () => {
   const fetchSubjects = async () => {
     setLoading(true);
     setError('');
+    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses?all=true`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       const data = await response.json();
       if (response.ok) {
         setSubjects(data.data || []);
@@ -68,6 +73,53 @@ const AdminDashboard = () => {
       setError('Connection error fetching subjects');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleVisibility = async (subject) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const newHiddenState = !subject.IsHidden;
+    setTogglingSubjectId(subject.id);
+    setError('');
+    setSuccess('');
+
+    // Optimistic update
+    setSubjects((prev) =>
+      prev.map((s) => (s.id === subject.id ? { ...s, IsHidden: newHiddenState } : s))
+    );
+
+    try {
+      const formData = new FormData();
+      formData.append('isHidden', String(newHiddenState));
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${subject.id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setSuccess(`Subject "${subject.Name}" is now ${newHiddenState ? 'HIDDEN from' : 'VISIBLE to'} students.`);
+      } else {
+        // Rollback
+        setSubjects((prev) =>
+          prev.map((s) => (s.id === subject.id ? { ...s, IsHidden: subject.IsHidden } : s))
+        );
+        setError(data.message || 'Failed to toggle subject visibility');
+      }
+    } catch {
+      // Rollback
+      setSubjects((prev) =>
+        prev.map((s) => (s.id === subject.id ? { ...s, IsHidden: subject.IsHidden } : s))
+      );
+      setError('Connection error updating subject visibility');
+    } finally {
+      setTogglingSubjectId(null);
     }
   };
 
@@ -270,6 +322,7 @@ const AdminDashboard = () => {
       formData.append('price', courseForm.price);
       formData.append('medium', courseForm.medium);
       formData.append('day', courseForm.day);
+      formData.append('isHidden', String(courseForm.isHidden || false));
       if (courseForm.meetingLink) formData.append('meetingLink', courseForm.meetingLink);
       if (courseForm.startTime) formData.append('startTime', courseForm.startTime);
       if (courseForm.endTime) formData.append('endTime', courseForm.endTime);
@@ -285,7 +338,7 @@ const AdminDashboard = () => {
       const data = await response.json();
       if (response.ok) {
         setSuccess('Course created successfully!');
-        setCourseForm({ name: '', instructor: '', grade: '', price: '', medium: '', meetingLink: '', startTime: '', endTime: '', day: '', image: null });
+        setCourseForm({ name: '', instructor: '', grade: '', price: '', medium: '', meetingLink: '', startTime: '', endTime: '', day: '', image: null, isHidden: false });
         await fetchSubjects();
         setActiveTab('subjects');
       } else {
@@ -327,6 +380,7 @@ const AdminDashboard = () => {
       day: subject.Day || '',
       startTime: subject.StartTime || '',
       endTime: subject.EndTime || '',
+      isHidden: Boolean(subject.IsHidden),
       image: null,
     });
     setError('');
@@ -365,6 +419,7 @@ const AdminDashboard = () => {
       if (editingSubject.startTime) formData.append('startTime', editingSubject.startTime);
       if (editingSubject.endTime) formData.append('endTime', editingSubject.endTime);
       if (editingSubject.image) formData.append('image', editingSubject.image);
+      formData.append('isHidden', String(editingSubject.isHidden || false));
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${editingSubject.id}`, {
         method: 'PUT',
@@ -523,18 +578,66 @@ const AdminDashboard = () => {
                         <th style={{ padding: '16px', fontWeight: 600 }}>Instructor</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Grade/Medium</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Price</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Visibility</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Meeting</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {subjects.map((subject) => (
-                        <tr key={subject.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <tr key={subject.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: subject.IsHidden ? 0.7 : 1, transition: 'opacity 0.2s ease' }}>
                           <td style={{ padding: '16px', color: 'var(--accent)', fontFamily: 'var(--mono)' }}>#{subject.id}</td>
-                          <td style={{ padding: '16px', color: 'var(--white)' }}>{subject.Name}</td>
+                          <td style={{ padding: '16px', color: 'var(--white)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span>{subject.Name}</span>
+                              {subject.IsHidden && (
+                                <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', padding: '2px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.2)', color: '#FF5A65', border: '1px solid rgba(239, 68, 68, 0.4)' }}>
+                                  HIDDEN
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{subject.InstructorName || subject.Instructor || subject.instructor?.name || 'N/A'}</td>
                           <td style={{ padding: '16px', color: 'var(--ink-2)' }}>G{subject.Grade} / {subject.Medium}</td>
                           <td style={{ padding: '16px', color: 'var(--ink-2)' }}>Rs. {subject.Price}</td>
+                          <td style={{ padding: '16px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleVisibility(subject)}
+                              disabled={togglingSubjectId === subject.id}
+                              title={subject.IsHidden ? 'Click to show subject to students' : 'Click to hide subject from students'}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '5px 12px',
+                                borderRadius: '20px',
+                                fontSize: '11px',
+                                fontFamily: 'var(--mono)',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                background: subject.IsHidden ? 'rgba(239, 68, 68, 0.12)' : 'rgba(45, 212, 191, 0.12)',
+                                color: subject.IsHidden ? '#FF5A65' : 'var(--accent)',
+                                border: `1px solid ${subject.IsHidden ? 'rgba(239, 68, 68, 0.35)' : 'rgba(45, 212, 191, 0.35)'}`,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  backgroundColor: subject.IsHidden ? '#FF5A65' : 'var(--accent)',
+                                  boxShadow: subject.IsHidden ? 'none' : '0 0 6px var(--accent)',
+                                }}
+                              />
+                              {togglingSubjectId === subject.id
+                                ? 'UPDATING...'
+                                : subject.IsHidden
+                                ? 'HIDDEN (SHOW)'
+                                : 'VISIBLE (HIDE)'}
+                            </button>
+                          </td>
                           <td style={{ padding: '16px' }}>
                             {subject.MeetingLink ? <a href={subject.MeetingLink} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>LINK</a> : <span style={{ color: 'var(--ink-4)' }}>N/A</span>}
                           </td>
@@ -547,7 +650,7 @@ const AdminDashboard = () => {
                         </tr>
                       ))}
                       {subjects.length === 0 && (
-                        <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>No subjects found.</td></tr>
+                        <tr><td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>No subjects found.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -668,6 +771,20 @@ const AdminDashboard = () => {
                       <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subject Image</label>
                       <input type="file" accept="image/*" onChange={e => setCourseForm({...courseForm, image: e.target.files[0]})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
                     </div>
+                    <div className="auth-field" style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', padding: '14px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none', width: '100%' }}>
+                        <input
+                          type="checkbox"
+                          checked={courseForm.isHidden || false}
+                          onChange={(e) => setCourseForm(prev => ({ ...prev, isHidden: e.target.checked }))}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--accent)', cursor: 'pointer' }}
+                        />
+                        <div>
+                          <div style={{ color: 'var(--white)', fontSize: '13px', fontWeight: 600 }}>Create as hidden (Draft mode)</div>
+                          <div style={{ color: 'var(--ink-3)', fontSize: '11px', marginTop: '2px' }}>Keep this subject hidden from students and public pages upon creation.</div>
+                        </div>
+                      </label>
+                    </div>
                     <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
                       <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '14px 32px' }}>{loading ? 'CREATING...' : 'INITIALIZE MODULE'}</button>
                     </div>
@@ -774,8 +891,8 @@ const AdminDashboard = () => {
 
       {/* Student Details Modal */}
       {selectedStudent && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setSelectedStudent(null)}>
-          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '500px', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setSelectedStudent(null)}>
+          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
             <div className="dash-panel-head">
               <span className="dash-panel-title">Operative Details</span>
               <button onClick={() => setSelectedStudent(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
@@ -816,8 +933,8 @@ const AdminDashboard = () => {
 
       {/* Edit Subject Modal */}
       {editingSubject && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEditingSubject(null)}>
-          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '600px', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setEditingSubject(null)}>
+          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
             <div className="dash-panel-head">
               <span className="dash-panel-title">Edit Subject Parameter</span>
               <button onClick={() => setEditingSubject(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
@@ -881,6 +998,21 @@ const AdminDashboard = () => {
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subject Image (Optional)</label>
                   <input type="file" name="image" accept="image/*" onChange={(e) => setEditingSubject({...editingSubject, image: e.target.files[0]})} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
                 </div>
+                <div className="auth-field" style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', padding: '14px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none', width: '100%' }}>
+                    <input
+                      type="checkbox"
+                      name="isHidden"
+                      checked={editingSubject.isHidden || false}
+                      onChange={(e) => setEditingSubject(prev => ({ ...prev, isHidden: e.target.checked }))}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--accent)', cursor: 'pointer' }}
+                    />
+                    <div>
+                      <div style={{ color: 'var(--white)', fontSize: '13px', fontWeight: 600 }}>Hide this subject from students</div>
+                      <div style={{ color: 'var(--ink-3)', fontSize: '11px', marginTop: '2px' }}>When enabled, this subject will disappear from homepage & student dashboard.</div>
+                    </div>
+                  </label>
+                </div>
                 <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--ink-3)', marginTop: '-10px' }}>
                   Note: Providing a Start and End Time will automatically generate and update the Google Meet Link.
                 </div>
@@ -896,8 +1028,8 @@ const AdminDashboard = () => {
 
       {/* Viewing Payment Slip Modal */}
       {viewingSlipUrl && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setViewingSlipUrl(null)}>
-          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '600px', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setViewingSlipUrl(null)}>
+          <div className="dash-panel" onClick={(e) => e.stopPropagation()} style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto', padding: 0, background: '#0a0a0c', border: '1px solid var(--border)' }}>
             <div className="dash-panel-head">
               <span className="dash-panel-title">Proof of Authorization</span>
               <button onClick={() => setViewingSlipUrl(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>

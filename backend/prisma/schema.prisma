@@ -45,18 +45,21 @@ model Student {
 }
 
 model Subjects {
-  id          BigInt  @id @default(autoincrement())
-  Name        String  @unique
-  Grade       Decimal
-  Price       Decimal
-  Instructor  String
-  Medium      String
-  MeetingLink String
+  id              BigInt   @id @default(autoincrement())
+  Name            String
+  Grade           Decimal
+  Price           Decimal
+  Instructor      String
+  Medium          String
+  MeetingLink     String
   CalendarEventId String?
-  Day         String?
-  StartTime   String?
-  EndTime     String?
-  Image       String?
+  Day             String?
+  StartTime       String?
+  EndTime         String?
+  Image           String?
+  IsHidden        Boolean  @default(false)
+
+  @@unique([Name, Grade], map: "Subjects_Name_Grade_key")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
