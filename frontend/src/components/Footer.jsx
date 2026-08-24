@@ -12,7 +12,7 @@ function Footer() {
           <h3 className="footer__cta-title">
             Ready to push<br /><em>boundaries?</em>
           </h3>
-          <Link to="/register" className="footer__cta-btn">
+          <Link to="/student/register" className="footer__cta-btn">
             Initialize Access <span style={{ color: 'var(--accent)' }}>→</span>
           </Link>
         </div>
