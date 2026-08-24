@@ -12,6 +12,15 @@ const buildProfileForm = (student) => ({
   confirmPassword: '',
 });
 
+const formatTime = (timeStr) => {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':');
+  let hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${String(hour).padStart(2, '0')}:${m} ${ampm}`;
+};
+
 const StudentHome = () => {
   const navigate = useNavigate();
   const [storedStudent] = useState(() => {
@@ -457,6 +466,12 @@ const StudentHome = () => {
                     <>
                       <span>•</span>
                       <span>{subject.Day}</span>
+                    </>
+                  )}
+                  {subject.StartTime && subject.EndTime && (
+                    <>
+                      <span>•</span>
+                      <span>{formatTime(subject.StartTime)} - {formatTime(subject.EndTime)}</span>
                     </>
                   )}
                   <span>•</span>
