@@ -22,9 +22,36 @@ const StudentRegister = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validateForm = () => {
+    if (formData.password.length < 6) {
+      return 'Passkey must be at least 6 characters long.';
+    }
+    const phoneRegex = /^\+?[\d\s-]{9,}$/;
+    if (!phoneRegex.test(formData.whatsappNumber)) {
+      return 'Please enter a valid WhatsApp number.';
+    }
+    if (!phoneRegex.test(formData.guardianNumber)) {
+      return 'Please enter a valid Overseer Comms (Guardian) number.';
+    }
+    if (formData.nic) {
+      const nicRegex = /^([0-9]{9}[vVxX]|[0-9]{12})$/;
+      if (!nicRegex.test(formData.nic.trim())) {
+        return 'Please enter a valid Sri Lankan NIC (9 digits + V/X or 12 digits).';
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
 
     try {
