@@ -26,7 +26,8 @@ const register = async (req, res) => {
     options: {
       data: {
         name,
-      }
+      },
+      emailRedirectTo: `${process.env.CLIENT_URL || 'http://localhost:5173'}/student/login`,
     }
   });
 
