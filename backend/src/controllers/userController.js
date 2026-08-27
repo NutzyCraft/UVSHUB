@@ -42,11 +42,18 @@ const getUser = async (req, res) => {
   });
 
   // Fetch corresponding Subject details to enrich the enrollment objects
-  const subjectNames = enrolledCourses.map(e => e.Subject_Name).filter(Boolean);
+  const subjectIds = enrolledCourses.map(e => e.Subject_ID).filter(Boolean);
+  const subjectNames = enrolledCourses.filter(e => !e.Subject_ID).map(e => e.Subject_Name).filter(Boolean);
+  
   let subjects = [];
-  if (subjectNames.length > 0) {
+  if (subjectIds.length > 0 || subjectNames.length > 0) {
     subjects = await prisma.subjects.findMany({
-      where: { Name: { in: subjectNames } }
+      where: {
+        OR: [
+          { id: { in: subjectIds } },
+          { Name: { in: subjectNames } }
+        ]
+      }
     });
   }
 
@@ -63,7 +70,9 @@ const getUser = async (req, res) => {
   }
 
   const enrichedEnrollments = enrolledCourses.map(enrollment => {
-    const subjectInfo = subjects.find(s => s.Name === enrollment.Subject_Name);
+    const subjectInfo = enrollment.Subject_ID 
+      ? subjects.find(s => s.id === enrollment.Subject_ID)
+      : subjects.find(s => s.Name === enrollment.Subject_Name);
     let instructorName = 'Unknown';
     if (subjectInfo) {
       const instInfo = instructors.find(i => i.id === subjectInfo.Instructor);
@@ -74,6 +83,7 @@ const getUser = async (req, res) => {
       ...enrollment,
       id: enrollment.id.toString(),
       Student_ID: enrollment.Student_ID ? enrollment.Student_ID.toString() : null,
+      Subject_ID: enrollment.Subject_ID ? enrollment.Subject_ID.toString() : null,
       AccessExpiresAt: enrollment.AccessExpiresAt ? enrollment.AccessExpiresAt.toISOString() : null,
       Grade: subjectInfo ? parseFloat(subjectInfo.Grade) : null,
       Medium: subjectInfo ? subjectInfo.Medium : 'Unknown',
@@ -93,6 +103,7 @@ const getUser = async (req, res) => {
     id: p.id.toString(),
     created_at: p.created_at,
     Subject: p.Subject,
+    Subject_ID: p.Subject_ID ? p.Subject_ID.toString() : null,
     Student_ID: p.Student_ID.toString(),
     Amount: p.Amount.toString(),
     Method: p.Method,

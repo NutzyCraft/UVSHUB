@@ -446,7 +446,7 @@ const enrollInCourse = async (req, res) => {
   const existingEnrollment = await prisma.enrollments.findFirst({
     where: {
       Student_ID: student.Student_ID,
-      Subject_Name: course.Name
+      Subject_ID: course.id
     }
   });
 
@@ -468,7 +468,8 @@ const enrollInCourse = async (req, res) => {
     data: {
       Student_ID: student.Student_ID,
       Studnet_Name: student.Name,
-      Subject_Name: course.Name
+      Subject_Name: course.Name,
+      Subject_ID: course.id
     }
   });
 
@@ -520,7 +521,7 @@ const unenrollFromCourse = async (req, res) => {
   const existingEnrollment = await prisma.enrollments.findFirst({
     where: {
       Student_ID: student.Student_ID,
-      Subject_Name: course.Name
+      Subject_ID: course.id
     }
   });
 

@@ -247,6 +247,7 @@ const StudentHome = () => {
 
     const formData = new FormData();
     formData.append('subjectName', selectedCourseForPayment.Subject_Name || selectedCourseForPayment.Name);
+    formData.append('subjectId', selectedCourseForPayment.id || '');
     formData.append('amount', selectedCourseForPayment.Price);
     formData.append('method', paymentMethod);
     formData.append('slip', paymentSlip);
@@ -448,7 +449,7 @@ const StudentHome = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {subjectList.map((subject, index) => {
           const isEnrolled = enrolledSubjects.some(
-            (enrollment) => enrollment.Subject_Name === (subject.Subject_Name || subject.Name)
+            (enrollment) => enrollment.Subject_ID ? String(enrollment.Subject_ID) === String(subject.id) : enrollment.Subject_Name === (subject.Subject_Name || subject.Name)
           );
           return (
             <article className="dash-course" key={subject.id || subject.Subject_Name || subject.Name || `${emptyTitle}-${index}`} style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
@@ -512,13 +513,13 @@ const StudentHome = () => {
                       </button>
 
                       {(() => {
-                        const enrollment = enrolledSubjects.find(e => e.Subject_Name === (subject.Subject_Name || subject.Name));
+                        const enrollment = enrolledSubjects.find(e => e.Subject_ID ? String(e.Subject_ID) === String(subject.id) : e.Subject_Name === (subject.Subject_Name || subject.Name));
                         const expiresAt = enrollment?.AccessExpiresAt ? new Date(enrollment.AccessExpiresAt) : null;
                         const isExpired = !expiresAt || expiresAt < new Date();
                         const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24))) : 0;
                         
                         const sortedPayments = [...(student.payments || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                        const latestPayment = sortedPayments.find(p => p.Subject === (subject.Subject_Name || subject.Name));
+                        const latestPayment = sortedPayments.find(p => p.Subject_ID ? String(p.Subject_ID) === String(subject.id) : p.Subject === (subject.Subject_Name || subject.Name));
                         const latestStatus = latestPayment ? latestPayment.Status : null;
 
                         if (!isExpired) {
@@ -820,9 +821,9 @@ const StudentHome = () => {
                 <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <div style={{ color: 'var(--accent)', fontSize: '11px', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 700 }}>Bank Details</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px', color: 'var(--ink-2)' }}>
-                    <div><strong>Bank:</strong> Commercial Bank</div>
-                    <div><strong>A/C No.:</strong> 8020111119</div>
-                    <div style={{ gridColumn: '1 / -1' }}><strong>Name:</strong> Soesh cooray</div>
+                    <div><strong>Bank:</strong> Hatton National Bank</div>
+                    <div><strong>A/C No.:</strong> 093010139790</div>
+                    <div style={{ gridColumn: '1 / -1' }}><strong>Name:</strong> NUTZYCRAFT PVT LTD</div>
                   </div>
                 </div>
 

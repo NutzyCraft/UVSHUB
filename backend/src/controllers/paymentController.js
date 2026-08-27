@@ -17,6 +17,7 @@ const getPayments = async (req, res) => {
   const serializedPayments = await Promise.all(payments.map(async p => ({
     ...p,
     id: p.id.toString(),
+    Subject_ID: p.Subject_ID ? p.Subject_ID.toString() : null,
     Student_ID: p.Student_ID.toString(),
     Amount: p.Amount.toString(),
     Slip_Url: p.Slip_Url ? await getSignedUrlIfNeeded(p.Slip_Url) : null
@@ -65,7 +66,7 @@ const approvePayment = async (req, res) => {
   const existingEnrollment = await prisma.enrollments.findFirst({
     where: {
       Student_ID: payment.Student_ID,
-      Subject_Name: payment.Subject
+      Subject_ID: payment.Subject_ID
     }
   });
 
@@ -85,8 +86,8 @@ const approvePayment = async (req, res) => {
 
     // Still invite to Meet even if already enrolled
     try {
-      const subject = await prisma.subjects.findFirst({
-        where: { Name: payment.Subject }
+      const subject = await prisma.subjects.findUnique({
+        where: { id: payment.Subject_ID }
       });
       if (subject?.CalendarEventId && student.Email) {
         await addStudentToClass(subject.CalendarEventId, student.Email);
@@ -109,6 +110,7 @@ const approvePayment = async (req, res) => {
       Student_ID: payment.Student_ID,
       Studnet_Name: student.Name,
       Subject_Name: payment.Subject,
+      Subject_ID: payment.Subject_ID,
       AccessExpiresAt: accessExpiresAt
     }
   });
@@ -121,8 +123,8 @@ const approvePayment = async (req, res) => {
 
   // Invite the student to the Google Meet for this course
   try {
-    const subject = await prisma.subjects.findFirst({
-      where: { Name: payment.Subject }
+    const subject = await prisma.subjects.findUnique({
+      where: { id: payment.Subject_ID }
     });
 
     if (subject?.CalendarEventId && student.Email) {
@@ -189,7 +191,7 @@ const rejectPayment = async (req, res) => {
  * @access  Private
  */
 const createPayment = async (req, res) => {
-  const { subjectName, amount, method } = req.body;
+  const { subjectName, subjectId, amount, method } = req.body;
 
   if (!subjectName || !amount || !method) {
     const error = new Error('Subject, amount and method are required');
@@ -241,6 +243,7 @@ const createPayment = async (req, res) => {
   const payment = await prisma.payments.create({
     data: {
       Subject: subjectName,
+      Subject_ID: subjectId ? BigInt(subjectId) : null,
       Student_ID: student.Student_ID,
       Amount: String(parseFloat(amount)),
       Method: method,
@@ -255,6 +258,7 @@ const createPayment = async (req, res) => {
     data: {
       id: payment.id.toString(),
       Subject: payment.Subject,
+      Subject_ID: payment.Subject_ID ? payment.Subject_ID.toString() : null,
       Student_ID: payment.Student_ID.toString(),
       Amount: payment.Amount.toString(),
       Method: payment.Method,
@@ -285,6 +289,7 @@ const getStudentPayments = async (req, res) => {
   const serializedPayments = await Promise.all(payments.map(async p => ({
     ...p,
     id: p.id.toString(),
+    Subject_ID: p.Subject_ID ? p.Subject_ID.toString() : null,
     Student_ID: p.Student_ID.toString(),
     Amount: p.Amount.toString(),
     Slip_Url: p.Slip_Url ? await getSignedUrlIfNeeded(p.Slip_Url) : null

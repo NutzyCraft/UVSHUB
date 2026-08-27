@@ -12,15 +12,17 @@ model Enrollments {
   Student_ID      BigInt?
   Studnet_Name    String?
   Subject_Name    String?
+  Subject_ID      BigInt?
   AccessExpiresAt DateTime? @db.Timestamptz(6)
 
-  @@unique([Student_ID, Subject_Name], map: "Enrollments_Student_Subject_key")
+  @@unique([Student_ID, Subject_ID], map: "Enrollments_Student_Subject_key")
 }
 
 model Payments {
   id         BigInt         @id @default(autoincrement())
   created_at DateTime       @default(now()) @db.Timestamptz(6)
   Subject    String
+  Subject_ID BigInt?
   Student_ID BigInt
   Amount     Decimal
   Method     String
