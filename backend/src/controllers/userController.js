@@ -8,7 +8,23 @@ const { getSignedUrlIfNeeded } = require('../config/storageHelper');
  * @access  Private/Admin
  */
 const getUsers = async (req, res) => {
-  const users = await prisma.student.findMany();
+  const { role } = req.query;
+  let where = {};
+  if (role === 'student') {
+    where = {
+      NOT: [
+        { Role: { equals: 'instructor', mode: 'insensitive' } },
+        { Role: { equals: 'admin', mode: 'insensitive' } },
+      ],
+    };
+  } else if (role) {
+    where = { Role: { equals: role, mode: 'insensitive' } };
+  }
+
+  const users = await prisma.student.findMany({
+    where,
+    orderBy: { Student_ID: 'asc' },
+  });
   
   // Convert BigInt for JSON
   const serializedUsers = users.map(user => ({
@@ -19,6 +35,7 @@ const getUsers = async (req, res) => {
 
   res.status(200).json({ success: true, count: users.length, data: serializedUsers });
 };
+
 
 /**
  * @desc    Get user profile

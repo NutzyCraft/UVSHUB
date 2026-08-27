@@ -72,6 +72,18 @@ model Instructors {
   Description String
 }
 
+model InstructorPayouts {
+  id              BigInt   @id @default(autoincrement())
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  InstructorName  String
+  Month           String
+  Amount          Decimal
+  PaidAt          DateTime @default(now()) @db.Timestamptz(6)
+  PaidByAdmin     String
+
+  @@unique([InstructorName, Month], map: "unique_instructor_month")
+}
+
 enum paymentStatus {
   Approved
   Rejected

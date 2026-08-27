@@ -33,18 +33,38 @@ const AdminDashboard = () => {
   const [success, setSuccess] = useState('');
   const [viewingSlipUrl, setViewingSlipUrl] = useState(null);
   const [togglingSubjectId, setTogglingSubjectId] = useState(null);
+  const [instructorAccounts, setInstructorAccounts] = useState([]);
+  const [newInstructorForm, setNewInstructorForm] = useState({ name: '', email: '', password: '' });
+  const [markingPaidId, setMarkingPaidId] = useState(null);
+  const [deletingInstructorId, setDeletingInstructorId] = useState(null);
+  const [studentSearch, setStudentSearch] = useState('');
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    if (!hours || !minutes) return timeStr;
+    const h = parseInt(hours, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+  };
+
   const navigate = useNavigate();
 
   const fetchStudents = async (token) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/users`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/users?role=student`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
       if (response.ok) {
-        setStudents(data.data || []);
+        const studentList = (data.data || []).filter(s => {
+          const r = (s.Role || '').toLowerCase();
+          return r !== 'instructor' && r !== 'admin';
+        });
+        setStudents(studentList);
       } else {
         setError(data.message || 'Failed to fetch students');
       }
@@ -173,6 +193,78 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchInstructorAccounts = async (token) => {
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/instructors/accounts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setInstructorAccounts(data.data || []);
+      else setError(data.message || 'Failed to fetch instructor accounts');
+    } catch { setError('Connection error'); }
+    finally { setLoading(false); }
+  };
+
+  const handleCreateInstructorAccount = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    setError(''); setSuccess(''); setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/instructors/accounts`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newInstructorForm)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(`Account created for ${newInstructorForm.name}!`);
+        setNewInstructorForm({ name: '', email: '', password: '' });
+        fetchInstructorAccounts(token);
+      } else { setError(data.message || 'Failed to create account'); }
+    } catch { setError('Connection error'); }
+    finally { setLoading(false); }
+  };
+
+  const handleMarkAsPaid = async (instructorId, instructorName) => {
+    if (!window.confirm(`Mark ${instructorName} as paid for this month?`)) return;
+    const token = localStorage.getItem('token');
+    setMarkingPaidId(instructorId); setError(''); setSuccess('');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/instructors/accounts/${instructorId}/pay`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) { setSuccess(data.message); fetchInstructorAccounts(token); }
+      else setError(data.message || 'Failed to mark as paid');
+    } catch { setError('Connection error'); }
+    finally { setMarkingPaidId(null); }
+  };
+
+  const handleDeleteInstructorAccount = async (instructorId, instructorName) => {
+    if (!window.confirm(`Are you sure you want to delete the instructor account for ${instructorName}? This will revoke their portal access and remove them from all class meeting links.`)) return;
+    const token = localStorage.getItem('token');
+    setDeletingInstructorId(instructorId); setError(''); setSuccess('');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/instructors/accounts/${instructorId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(data.message || 'Instructor account deleted successfully');
+        fetchInstructorAccounts(token);
+      } else {
+        setError(data.message || 'Failed to delete instructor account');
+      }
+    } catch {
+      setError('Connection error deleting instructor account');
+    } finally {
+      setDeletingInstructorId(null);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -202,6 +294,8 @@ const AdminDashboard = () => {
       Promise.resolve().then(() => fetchInstructors());
     } else if (activeTab === 'instructors') {
       Promise.resolve().then(() => fetchInstructors());
+    } else if (activeTab === 'instructorMgmt') {
+      Promise.resolve().then(() => fetchInstructorAccounts(token));
     } else if (activeTab === 'payments') {
       Promise.resolve().then(() => fetchPayments(token));
     } else if (activeTab === 'history') {
@@ -490,6 +584,7 @@ const AdminDashboard = () => {
             { id: 'students', label: 'Students' },
             { id: 'subjects', label: 'Subjects' },
             { id: 'instructors', label: 'Instructors' },
+            { id: 'instructorMgmt', label: 'Instructor Mgmt' },
             { id: 'courses', label: 'Add Course' },
             { id: 'payments', label: 'Approve Payments' },
             { id: 'history', label: 'Payment History' }
@@ -526,8 +621,33 @@ const AdminDashboard = () => {
 
           {activeTab === 'students' && !loading && (
             <>
-              <h1 className="dash-title">Student Registry</h1>
-              <p className="dash-sub">View and manage enrolled operatives.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h1 className="dash-title">Student Registry</h1>
+                  <p className="dash-sub">View and manage enrolled operatives.</p>
+                </div>
+                <div style={{ position: 'relative', width: '280px' }}>
+                  <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-4)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input
+                    type="text"
+                    placeholder="Search by name, email…"
+                    value={studentSearch}
+                    onChange={e => setStudentSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid var(--border)',
+                      padding: '10px 14px 10px 36px',
+                      borderRadius: 'var(--r-md)',
+                      color: 'var(--white)',
+                      outline: 'none',
+                      fontSize: '13px',
+                      fontFamily: 'var(--sans)',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
               <div className="dash-panel">
                 <div className="dash-panel-body" style={{ overflowX: 'auto', padding: 0 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
@@ -541,7 +661,17 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((student) => (
+                      {students
+                        .filter(s => {
+                          const r = (s.Role || '').toLowerCase();
+                          if (r === 'instructor' || r === 'admin') return false;
+                          const q = studentSearch.toLowerCase();
+                          return !q ||
+                            s.Name?.toLowerCase().includes(q) ||
+                            s.Email?.toLowerCase().includes(q) ||
+                            s.Watsapp_Number?.toLowerCase().includes(q);
+                        })
+                        .map((student) => (
                         <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                           <td style={{ padding: '16px', color: 'var(--accent)', fontFamily: 'var(--mono)' }}>#{student.Student_ID}</td>
                           <td style={{ padding: '16px', color: 'var(--white)' }}>{student.Name}</td>
@@ -554,8 +684,18 @@ const AdminDashboard = () => {
                           </td>
                         </tr>
                       ))}
-                      {students.length === 0 && (
-                        <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>No registered operatives found.</td></tr>
+                      {students.filter(s => {
+                        const r = (s.Role || '').toLowerCase();
+                        if (r === 'instructor' || r === 'admin') return false;
+                        const q = studentSearch.toLowerCase();
+                        return !q ||
+                          s.Name?.toLowerCase().includes(q) ||
+                          s.Email?.toLowerCase().includes(q) ||
+                          s.Watsapp_Number?.toLowerCase().includes(q);
+                      }).length === 0 && (
+                        <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-3)' }}>
+                          {studentSearch ? `No results for "${studentSearch}"` : 'No registered operatives found.'}
+                        </td></tr>
                       )}
                     </tbody>
                   </table>
@@ -577,6 +717,7 @@ const AdminDashboard = () => {
                         <th style={{ padding: '16px', fontWeight: 600 }}>Name</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Instructor</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Grade/Medium</th>
+                        <th style={{ padding: '16px', fontWeight: 600 }}>Schedule</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Price</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Visibility</th>
                         <th style={{ padding: '16px', fontWeight: 600 }}>Meeting</th>
@@ -599,6 +740,14 @@ const AdminDashboard = () => {
                           </td>
                           <td style={{ padding: '16px', color: 'var(--ink-2)' }}>{subject.InstructorName || subject.Instructor || subject.instructor?.name || 'N/A'}</td>
                           <td style={{ padding: '16px', color: 'var(--ink-2)' }}>G{subject.Grade} / {subject.Medium}</td>
+                          <td style={{ padding: '16px', color: 'var(--ink-2)' }}>
+                            {subject.Day || 'N/A'}<br/>
+                            {subject.StartTime && subject.EndTime ? (
+                              <span style={{ fontSize: '11px', color: 'var(--ink-3)' }}>
+                                {formatTime(subject.StartTime)} - {formatTime(subject.EndTime)}
+                              </span>
+                            ) : null}
+                          </td>
                           <td style={{ padding: '16px', color: 'var(--ink-2)' }}>Rs. {subject.Price}</td>
                           <td style={{ padding: '16px' }}>
                             <button
@@ -702,6 +851,159 @@ const AdminDashboard = () => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'instructorMgmt' && (
+            <>
+              <h1 className="dash-title">Instructor Management</h1>
+              <p className="dash-sub">Create instructor login accounts and manage monthly payouts.</p>
+
+              {/* ── Create Account Form ── */}
+              <div className="dash-panel" style={{ marginBottom: '32px', maxWidth: '600px' }}>
+                <div className="dash-panel-head">
+                  <span className="dash-panel-title">Create Instructor Account</span>
+                </div>
+                <div className="dash-panel-body">
+                  <form onSubmit={handleCreateInstructorAccount} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Full Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Nimal Perera"
+                        value={newInstructorForm.name}
+                        onChange={e => setNewInstructorForm({ ...newInstructorForm, name: e.target.value })}
+                        required
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '12px 14px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', fontSize: '14px' }}
+                      />
+                      <p style={{ fontSize: '11px', color: 'var(--ink-4)', marginTop: '2px' }}>⚠ Must exactly match the instructor name used in subjects.</p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Email</label>
+                      <input
+                        type="email"
+                        placeholder="instructor@email.com"
+                        value={newInstructorForm.email}
+                        onChange={e => setNewInstructorForm({ ...newInstructorForm, email: e.target.value })}
+                        required
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '12px 14px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', fontSize: '14px' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Temporary Password</label>
+                      <input
+                        type="text"
+                        placeholder="Min 6 characters"
+                        value={newInstructorForm.password}
+                        onChange={e => setNewInstructorForm({ ...newInstructorForm, password: e.target.value })}
+                        required
+                        minLength={6}
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '12px 14px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', fontSize: '14px', fontFamily: 'var(--mono)' }}
+                      />
+                      <p style={{ fontSize: '11px', color: 'var(--ink-4)', marginTop: '2px' }}>Share this password with the instructor. They can change it after logging in.</p>
+                    </div>
+                    <div>
+                      <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '12px 28px' }}>
+                        {loading ? 'CREATING...' : 'CREATE ACCOUNT'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* ── Instructor Accounts Table ── */}
+              <div className="dash-panel">
+                <div className="dash-panel-head">
+                  <span className="dash-panel-title">Instructor Accounts</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--ink-4)' }}>
+                    {instructorAccounts[0]?.currentMonth || new Date().toISOString().slice(0,7)}
+                  </span>
+                </div>
+                <div className="dash-panel-body" style={{ overflowX: 'auto', padding: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--ink-3)' }}>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Instructor</th>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Email</th>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Subjects</th>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Students</th>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Gross</th>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Net Receivable</th>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>This Month</th>
+                        <th style={{ padding: '14px 16px', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {instructorAccounts.map(inst => (
+                        <tr key={inst.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--violet), var(--blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                                {inst.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span style={{ color: 'var(--white)', fontWeight: 600 }}>{inst.name}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', color: 'var(--ink-3)', fontFamily: 'var(--mono)', fontSize: '12px' }}>{inst.email}</td>
+                          <td style={{ padding: '14px 16px', color: 'var(--ink-2)', textAlign: 'center' }}>{inst.subjectCount}</td>
+                          <td style={{ padding: '14px 16px', color: 'var(--ink-2)', textAlign: 'center' }}>{inst.totalStudents}</td>
+                          <td style={{ padding: '14px 16px', color: 'var(--ink-2)', fontFamily: 'var(--mono)' }}>Rs. {inst.totalGross.toLocaleString()}</td>
+                          <td style={{ padding: '14px 16px', fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--accent)' }}>Rs. {inst.totalNet.toLocaleString()}</td>
+                          <td style={{ padding: '14px 16px' }}>
+                            {inst.paidThisMonth ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(45,212,191,0.1)', color: 'var(--blue)', border: '1px solid rgba(45,212,191,0.25)', padding: '5px 10px', borderRadius: '20px', fontSize: '11px', fontFamily: 'var(--mono)', fontWeight: 700 }}>
+                                  ✓ PAID
+                                </span>
+                                <span style={{ fontSize: '11px', color: 'var(--ink-4)' }}>Rs. {inst.paidAmount?.toLocaleString()}</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleMarkAsPaid(inst.id, inst.name)}
+                                disabled={markingPaidId === inst.id}
+                                style={{
+                                  background: inst.totalNet <= 0 ? 'var(--surface-3)' : 'rgba(226,255,74,0.08)',
+                                  border: `1px solid ${inst.totalNet <= 0 ? 'var(--border)' : 'rgba(226,255,74,0.3)'}`,
+                                  color: inst.totalNet <= 0 ? 'var(--ink-4)' : 'var(--accent)',
+                                  padding: '6px 14px', borderRadius: '20px', cursor: 'pointer',
+                                  fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {markingPaidId === inst.id ? 'MARKING...' : `MARK PAID  Rs. ${inst.totalNet.toLocaleString()}`}
+                              </button>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <button
+                              onClick={() => handleDeleteInstructorAccount(inst.id, inst.name)}
+                              disabled={deletingInstructorId === inst.id}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid #FF5A65',
+                                color: '#FF5A65',
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontFamily: 'var(--mono)',
+                                fontWeight: 700,
+                                transition: 'all 0.2s',
+                              }}
+                              title="Delete account and revoke meeting links"
+                            >
+                              {deletingInstructorId === inst.id ? 'DELETING...' : 'DELETE'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {instructorAccounts.length === 0 && !loading && (
+                        <tr><td colSpan="8" style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-4)' }}>No instructor accounts found. Create one above.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </>
@@ -988,11 +1290,11 @@ const AdminDashboard = () => {
                 </div>
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Start Time</label>
-                  <input type="time" name="startTime" value={editingSubject.startTime || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                  <input type="time" name="startTime" value={editingSubject.startTime || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', colorScheme: 'dark' }} />
                 </div>
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>End Time</label>
-                  <input type="time" name="endTime" value={editingSubject.endTime || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none' }} />
+                  <input type="time" name="endTime" value={editingSubject.endTime || ''} onChange={handleSubjectEditChange} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', padding: '14px 16px', borderRadius: 'var(--r-md)', color: 'var(--white)', outline: 'none', colorScheme: 'dark' }} />
                 </div>
                 <div className="auth-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label className="auth-label" style={{ fontFamily: 'var(--mono)', fontSize: '11px', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subject Image (Optional)</label>

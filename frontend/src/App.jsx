@@ -9,6 +9,7 @@ import ResetPassword from './pages/student/ResetPassword';
 import About from './pages/home/About';
 import StudentHome from './pages/student/StudentHome';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import InstructorDashboard from './pages/instructor/InstructorDashboard';
 import CustomCursor from './components/ui/CustomCursor';
 import ThemeToggle from './components/ui/ThemeToggle';
 
@@ -27,7 +28,8 @@ function App() {
         <Route path="/student/forgot-password" element={<ForgotPassword />} />
         <Route path="/student/reset-password" element={<ResetPassword />} />
         <Route path="/student/home"     element={<StudentHome />} />
-        <Route path="/admin/dashboard"  element={<AdminDashboard />} />
+        <Route path="/admin/dashboard"       element={<AdminDashboard />} />
+        <Route path="/instructor/dashboard"   element={<InstructorDashboard />} />
       </Routes>
     </BrowserRouter>
   );

@@ -294,6 +294,11 @@ const StudentHome = () => {
       return;
     }
 
+    if (role?.toLowerCase() === 'instructor') {
+      navigateRef.current('/instructor/dashboard');
+      return;
+    }
+
     let cancelled = false;
 
     const loadProfile = async () => {

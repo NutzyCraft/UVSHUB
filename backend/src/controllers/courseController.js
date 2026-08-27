@@ -1,5 +1,5 @@
 const { prisma } = require('../config/db');
-const { createClassEvent, removeStudentFromClass } = require('../utils/googleCalendar');
+const { createClassEvent, addStudentToClass, removeStudentFromClass } = require('../utils/googleCalendar');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -230,6 +230,22 @@ const createCourse = async (req, res) => {
     Price: parseFloat(course.Price),
     IsHidden: Boolean(course.IsHidden),
   };
+
+  // Invite the instructor to their own calendar event (no expiry, permanent access)
+  if (calendarEventId && instructorValue) {
+    try {
+      const instructorAccount = await prisma.student.findFirst({
+        where: { Name: instructorValue, Role: 'instructor' },
+        select: { Email: true },
+      });
+      if (instructorAccount?.Email) {
+        await addStudentToClass(calendarEventId, instructorAccount.Email);
+        console.log(`✅ Instructor ${instructorAccount.Email} invited to Meet for "${course.Name}"`);
+      }
+    } catch (calendarError) {
+      console.error('⚠️ Failed to invite instructor to Google Meet:', calendarError.message);
+    }
+  }
 
   res.status(201).json({ success: true, data: serializedCourse });
 };
