@@ -26,6 +26,40 @@ const getPayments = async (req, res) => {
   res.status(200).json({ success: true, count: payments.length, data: serializedPayments });
 };
 
+// Helper to calculate the 28-day access expiration date smartly (GMT+5:30 Asia/Colombo)
+const calculateAccessExpiresAt = (existingEnrollment, subject) => {
+  const now = new Date();
+  const DURATION_DAYS = 28;
+
+  // Case 1: Existing enrollment with active remaining days -> Extend from existing expiration date
+  if (existingEnrollment?.AccessExpiresAt && new Date(existingEnrollment.AccessExpiresAt) > now) {
+    const currentExpiry = new Date(existingEnrollment.AccessExpiresAt);
+    return new Date(currentExpiry.getTime() + DURATION_DAYS * 24 * 60 * 60 * 1000);
+  }
+
+  // Case 2: New enrollment or expired enrollment -> Anchor to upcoming first class date in GMT+5:30
+  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const targetDayIndex = subject?.Day ? daysOfWeek.indexOf(subject.Day.trim().toLowerCase()) : -1;
+
+  const colomboNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }));
+  let daysUntilClass = 0;
+
+  if (targetDayIndex !== -1) {
+    const currentDayIndex = colomboNow.getDay();
+    daysUntilClass = (targetDayIndex - currentDayIndex + 7) % 7;
+  }
+
+  const targetDate = new Date(colomboNow);
+  targetDate.setDate(targetDate.getDate() + daysUntilClass + DURATION_DAYS);
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const date = String(targetDate.getDate()).padStart(2, '0');
+
+  // Exact 11:59:59 PM in Sri Lanka time (GMT+05:30)
+  return new Date(`${year}-${month}-${date}T23:59:59.999+05:30`);
+};
+
 /**
  * @desc    Approve a payment and enroll the student
  * @route   POST /api/v1/payments/:id/approve
@@ -62,18 +96,22 @@ const approvePayment = async (req, res) => {
     throw error;
   }
 
+  // Find the corresponding subject details for schedule anchoring and calendar invites
+  const subject = payment.Subject_ID
+    ? await prisma.subjects.findUnique({ where: { id: payment.Subject_ID } })
+    : await prisma.subjects.findFirst({ where: { Name: payment.Subject } });
+
   // Check if enrollment already exists
   const existingEnrollment = await prisma.enrollments.findFirst({
     where: {
       Student_ID: payment.Student_ID,
-      Subject_ID: payment.Subject_ID
+      ...(payment.Subject_ID ? { Subject_ID: payment.Subject_ID } : { Subject_Name: payment.Subject })
     }
   });
 
-  if (existingEnrollment) {
-    // Renew the 28-day access window
-    const accessExpiresAt = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000);
+  const accessExpiresAt = calculateAccessExpiresAt(existingEnrollment, subject);
 
+  if (existingEnrollment) {
     await prisma.payments.update({
       where: { id: paymentId },
       data: { Status: 'Approved' }
@@ -81,14 +119,14 @@ const approvePayment = async (req, res) => {
 
     await prisma.enrollments.update({
       where: { id: existingEnrollment.id },
-      data: { AccessExpiresAt: accessExpiresAt }
+      data: { 
+        AccessExpiresAt: accessExpiresAt,
+        ...(payment.Subject_ID && !existingEnrollment.Subject_ID ? { Subject_ID: payment.Subject_ID } : {})
+      }
     });
 
     // Still invite to Meet even if already enrolled
     try {
-      const subject = await prisma.subjects.findUnique({
-        where: { id: payment.Subject_ID }
-      });
       if (subject?.CalendarEventId && student.Email) {
         await addStudentToClass(subject.CalendarEventId, student.Email);
       }
@@ -98,19 +136,17 @@ const approvePayment = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Payment approved, but student was already enrolled.'
+      message: 'Payment approved, access extended successfully.'
     });
   }
 
-  // Create enrollment with 28-day access window
-  const accessExpiresAt = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000);
-
+  // Create new enrollment
   const enrollment = await prisma.enrollments.create({
     data: {
       Student_ID: payment.Student_ID,
       Studnet_Name: student.Name,
       Subject_Name: payment.Subject,
-      Subject_ID: payment.Subject_ID,
+      Subject_ID: payment.Subject_ID || (subject ? subject.id : null),
       AccessExpiresAt: accessExpiresAt
     }
   });
@@ -123,10 +159,6 @@ const approvePayment = async (req, res) => {
 
   // Invite the student to the Google Meet for this course
   try {
-    const subject = await prisma.subjects.findUnique({
-      where: { id: payment.Subject_ID }
-    });
-
     if (subject?.CalendarEventId && student.Email) {
       await addStudentToClass(subject.CalendarEventId, student.Email);
       console.log(`✅ Student ${student.Email} invited to Meet for "${payment.Subject}"`);

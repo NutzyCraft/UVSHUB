@@ -21,6 +21,9 @@ const formatTime = (timeStr) => {
   return `${String(hour).padStart(2, '0')}:${m} ${ampm}`;
 };
 
+const getSubjectId = (item) => (item?.Subject_ID ? String(item.Subject_ID) : (item?.id ? String(item.id) : null));
+const getSubjectName = (item) => (item?.Subject_Name || item?.Name || '');
+
 const StudentHome = () => {
   const navigate = useNavigate();
   const [storedStudent] = useState(() => {
@@ -119,7 +122,9 @@ const StudentHome = () => {
   const [unenrollingId, setUnenrollingId] = useState(null);
 
   const handleUnenroll = async (course) => {
-    if (!window.confirm(`Are you sure you want to unenroll from ${course.Name || course.Subject_Name}?`)) return;
+    const courseName = getSubjectName(course);
+    const courseId = getSubjectId(course);
+    if (!window.confirm(`Are you sure you want to unenroll from ${courseName}?`)) return;
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -127,11 +132,11 @@ const StudentHome = () => {
       return;
     }
 
-    setUnenrollingId(course.id);
+    setUnenrollingId(courseId);
     setError('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${course.id}/enroll`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${courseId}/enroll`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -154,17 +159,18 @@ const StudentHome = () => {
   };
 
   const handleEnroll = async (course) => {
+    const courseId = getSubjectId(course);
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/student/login');
       return;
     }
 
-    setEnrollingId(course.id);
+    setEnrollingId(courseId);
     setError('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${course.id}/enroll`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/courses/${courseId}/enroll`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -242,13 +248,15 @@ const StudentHome = () => {
       return;
     }
 
-    setPayingId(selectedCourseForPayment.id);
+    const targetCourseId = getSubjectId(selectedCourseForPayment);
+    const targetCourseName = getSubjectName(selectedCourseForPayment);
+    setPayingId(targetCourseId);
     setError('');
 
     const formData = new FormData();
-    formData.append('subjectName', selectedCourseForPayment.Subject_Name || selectedCourseForPayment.Name);
-    formData.append('subjectId', selectedCourseForPayment.id || '');
-    formData.append('amount', selectedCourseForPayment.Price);
+    formData.append('subjectName', targetCourseName);
+    formData.append('subjectId', targetCourseId || '');
+    formData.append('amount', selectedCourseForPayment.Price || 0);
     formData.append('method', paymentMethod);
     formData.append('slip', paymentSlip);
 
@@ -453,14 +461,25 @@ const StudentHome = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {subjectList.map((subject, index) => {
-          const isEnrolled = enrolledSubjects.some(
-            (enrollment) => enrollment.Subject_ID ? String(enrollment.Subject_ID) === String(subject.id) : enrollment.Subject_Name === (subject.Subject_Name || subject.Name)
-          );
+          const subjectId = getSubjectId(subject);
+          const subjectName = getSubjectName(subject);
+
+          const enrollment = enrolledSubjects.find((e) => {
+            const eSubjectId = getSubjectId(e);
+            if (subjectId && eSubjectId) {
+              return eSubjectId === subjectId;
+            }
+            return getSubjectName(e) === subjectName;
+          });
+
+          const isEnrolled = Boolean(enrollment);
+          const isFree = !subject.Price || Number(subject.Price) === 0;
+
           return (
-            <article className="dash-course" key={subject.id || subject.Subject_Name || subject.Name || `${emptyTitle}-${index}`} style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
+            <article className="dash-course" key={subjectId || subjectName || `${emptyTitle}-${index}`} style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
               <div className="dash-course-info" style={{ width: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div className="dash-course-title" style={{ fontSize: '18px' }}>{subject.Subject_Name || subject.Name}</div>
+                  <div className="dash-course-title" style={{ fontSize: '18px' }}>{subjectName}</div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--accent)' }}>{subject.Price ? `Rs. ${subject.Price}` : 'FREE'}</div>
                 </div>
                 
@@ -489,11 +508,11 @@ const StudentHome = () => {
                     <button
                       type="button"
                       className="btn btn-primary"
-                      disabled={enrollingId === subject.id}
+                      disabled={enrollingId === subjectId}
                       onClick={() => handleEnroll(subject)}
                       style={{ padding: '8px 16px', fontSize: '12px' }}
                     >
-                      {enrollingId === subject.id ? 'PROCESSING...' : ' ENROLL '}
+                      {enrollingId === subjectId ? 'PROCESSING...' : ' ENROLL '}
                     </button>
                   )}
 
@@ -510,28 +529,33 @@ const StudentHome = () => {
                       <button
                         type="button"
                         className="btn btn-outline"
-                        disabled={unenrollingId === subject.id}
+                        disabled={unenrollingId === subjectId}
                         onClick={() => handleUnenroll(subject)}
                         style={{ padding: '8px 16px', fontSize: '12px', color: '#FF5A65', borderColor: '#FF5A65' }}
                       >
-                        {unenrollingId === subject.id ? 'UNENROLLING...' : 'UNENROLL'}
+                        {unenrollingId === subjectId ? 'UNENROLLING...' : 'UNENROLL'}
                       </button>
 
                       {(() => {
-                        const enrollment = enrolledSubjects.find(e => e.Subject_ID ? String(e.Subject_ID) === String(subject.id) : e.Subject_Name === (subject.Subject_Name || subject.Name));
                         const expiresAt = enrollment?.AccessExpiresAt ? new Date(enrollment.AccessExpiresAt) : null;
-                        const isExpired = !expiresAt || expiresAt < new Date();
+                        const isExpired = isFree ? false : (!expiresAt || expiresAt < new Date());
                         const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24))) : 0;
                         
                         const sortedPayments = [...(student.payments || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                        const latestPayment = sortedPayments.find(p => p.Subject_ID ? String(p.Subject_ID) === String(subject.id) : p.Subject === (subject.Subject_Name || subject.Name));
+                        const latestPayment = sortedPayments.find((p) => {
+                          const pSubjectId = p.Subject_ID ? String(p.Subject_ID) : null;
+                          if (subjectId && pSubjectId) {
+                            return pSubjectId === subjectId;
+                          }
+                          return p.Subject === subjectName;
+                        });
                         const latestStatus = latestPayment ? latestPayment.Status : null;
 
-                        if (!isExpired) {
+                        if (isFree || !isExpired) {
                           return (
                             <>
                               <button type="button" className="btn btn-outline" disabled style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--accent)', borderColor: 'var(--accent)' }}>
-                                APPROVED
+                                {isFree ? 'FREE ACCESS' : 'APPROVED'}
                               </button>
                               {subject.MeetingLink && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -544,9 +568,11 @@ const StudentHome = () => {
                                   >
                                     JOIN MEETING
                                   </a>
-                                  <span style={{ fontSize: '11px', fontFamily: 'var(--mono)', color: daysLeft <= 5 ? '#f59e0b' : 'var(--ink-3)', padding: '4px 8px', borderRadius: '4px', background: daysLeft <= 5 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${daysLeft <= 5 ? 'rgba(245, 158, 11, 0.3)' : 'var(--border)'}` }}>
-                                    {daysLeft}d left
-                                  </span>
+                                  {!isFree && (
+                                    <span style={{ fontSize: '11px', fontFamily: 'var(--mono)', color: daysLeft <= 5 ? '#f59e0b' : 'var(--ink-3)', padding: '4px 8px', borderRadius: '4px', background: daysLeft <= 5 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${daysLeft <= 5 ? 'rgba(245, 158, 11, 0.3)' : 'var(--border)'}` }}>
+                                      {daysLeft}d left
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </>
@@ -570,11 +596,11 @@ const StudentHome = () => {
                             <button
                               type="button"
                               className="btn btn-outline"
-                              disabled={payingId === subject.id}
+                              disabled={payingId === subjectId}
                               onClick={() => handlePayNow(subject)}
                               style={{ padding: '8px 16px', fontSize: '12px', color: '#f59e0b', borderColor: '#f59e0b' }}
                             >
-                              {payingId === subject.id ? 'PROCESSING...' : 'UPDATE PAYMENT'}
+                              {payingId === subjectId ? 'PROCESSING...' : 'UPDATE PAYMENT'}
                             </button>
                           );
                         }

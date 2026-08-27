@@ -60,15 +60,15 @@ const getUser = async (req, res) => {
 
   // Fetch corresponding Subject details to enrich the enrollment objects
   const subjectIds = enrolledCourses.map(e => e.Subject_ID).filter(Boolean);
-  const subjectNames = enrolledCourses.filter(e => !e.Subject_ID).map(e => e.Subject_Name).filter(Boolean);
+  const subjectNames = enrolledCourses.map(e => e.Subject_Name).filter(Boolean);
   
   let subjects = [];
   if (subjectIds.length > 0 || subjectNames.length > 0) {
     subjects = await prisma.subjects.findMany({
       where: {
         OR: [
-          { id: { in: subjectIds } },
-          { Name: { in: subjectNames } }
+          ...(subjectIds.length > 0 ? [{ id: { in: subjectIds } }] : []),
+          ...(subjectNames.length > 0 ? [{ Name: { in: subjectNames } }] : [])
         ]
       }
     });
@@ -88,7 +88,7 @@ const getUser = async (req, res) => {
 
   const enrichedEnrollments = enrolledCourses.map(enrollment => {
     const subjectInfo = enrollment.Subject_ID 
-      ? subjects.find(s => s.id === enrollment.Subject_ID)
+      ? subjects.find(s => s.id.toString() === enrollment.Subject_ID.toString())
       : subjects.find(s => s.Name === enrollment.Subject_Name);
     let instructorName = 'Unknown';
     if (subjectInfo) {
@@ -96,15 +96,25 @@ const getUser = async (req, res) => {
       instructorName = instInfo?.Name || subjectInfo.Instructor || 'Unknown';
     }
 
+    const courseId = subjectInfo ? subjectInfo.id.toString() : (enrollment.Subject_ID ? enrollment.Subject_ID.toString() : enrollment.id.toString());
+    const courseName = subjectInfo ? subjectInfo.Name : (enrollment.Subject_Name || '');
+
     return {
       ...enrollment,
-      id: enrollment.id.toString(),
+      id: courseId,
+      enrollmentId: enrollment.id.toString(),
       Student_ID: enrollment.Student_ID ? enrollment.Student_ID.toString() : null,
-      Subject_ID: enrollment.Subject_ID ? enrollment.Subject_ID.toString() : null,
+      Subject_ID: subjectInfo ? subjectInfo.id.toString() : (enrollment.Subject_ID ? enrollment.Subject_ID.toString() : null),
+      Subject_Name: enrollment.Subject_Name || courseName,
+      Name: courseName,
       AccessExpiresAt: enrollment.AccessExpiresAt ? enrollment.AccessExpiresAt.toISOString() : null,
       Grade: subjectInfo ? parseFloat(subjectInfo.Grade) : null,
       Medium: subjectInfo ? subjectInfo.Medium : 'Unknown',
       Price: subjectInfo ? parseFloat(subjectInfo.Price) : null,
+      Day: subjectInfo ? subjectInfo.Day : null,
+      StartTime: subjectInfo ? subjectInfo.StartTime : null,
+      EndTime: subjectInfo ? subjectInfo.EndTime : null,
+      Image: subjectInfo ? subjectInfo.Image : null,
       InstructorName: instructorName,
       Instructor: subjectInfo ? subjectInfo.Instructor : null,
       MeetingLink: subjectInfo ? subjectInfo.MeetingLink : ''
