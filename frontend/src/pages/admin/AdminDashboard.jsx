@@ -1316,7 +1316,7 @@ const AdminDashboard = () => {
                   </label>
                 </div>
                 <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--ink-3)', marginTop: '-10px' }}>
-                  Note: Providing a Start and End Time will automatically generate and update the Google Meet Link.
+                  Note: A new Google Meet Link is generated automatically only when the Day, Time, or Instructor is changed.
                 </div>
                 <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '16px' }}>
                   <button type="button" onClick={() => setEditingSubject(null)} className="btn btn-outline" style={{ flex: 1, padding: '12px' }}>CANCEL</button>

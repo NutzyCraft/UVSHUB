@@ -326,10 +326,26 @@ const updateCourse = async (req, res) => {
     }
   }
 
+  const normalize = (val) => (val === null || val === undefined ? '' : String(val).trim());
+
+  const effectiveStartTime = startTime !== undefined ? startTime : (course.StartTime || '');
+  const effectiveEndTime = endTime !== undefined ? endTime : (course.EndTime || '');
+  const effectiveDay = day !== undefined ? day : (course.Day || '');
+  const effectiveInstructor = (isAdmin && instructor !== undefined) ? String(instructor).trim() : (course.Instructor || '');
+
+  // Detect whether day, startTime, endTime, or lecturer/instructor changed
+  const isDayChanged = day !== undefined && normalize(day) !== normalize(course.Day);
+  const isStartTimeChanged = startTime !== undefined && normalize(startTime) !== normalize(course.StartTime);
+  const isEndTimeChanged = endTime !== undefined && normalize(endTime) !== normalize(course.EndTime);
+  const isInstructorChanged = isAdmin && instructor !== undefined && normalize(instructor) !== normalize(course.Instructor);
+  const isScheduleOrInstructorChanged = isDayChanged || isStartTimeChanged || isEndTimeChanged || isInstructorChanged;
+  const hasNoExistingMeeting = !course.MeetingLink || normalize(course.MeetingLink) === '';
+
   let generatedMeetLink = meetingLink !== undefined ? meetingLink : course.MeetingLink;
   let calendarEventId = course.CalendarEventId;
 
-  if (startTime && endTime) {
+  // Only generate a new Google Meet link if date/time or lecturer changed, or if there is no meeting link yet
+  if ((isScheduleOrInstructorChanged || hasNoExistingMeeting) && effectiveStartTime && effectiveEndTime) {
     try {
       const toISO = (timeStr, dayName) => {
         if (timeStr.includes('T')) return timeStr;
@@ -353,19 +369,48 @@ const updateCourse = async (req, res) => {
         return `${year}-${month}-${date}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
       };
       
-      const targetDay = updateData.Day || course.Day;
-      const calendarResult = await createClassEvent(updateData.Name || course.Name, toISO(startTime, targetDay), toISO(endTime, targetDay));
+      const targetDay = effectiveDay || course.Day;
+      const calendarResult = await createClassEvent(updateData.Name || course.Name, toISO(effectiveStartTime, targetDay), toISO(effectiveEndTime, targetDay));
       calendarEventId = calendarResult.eventId;
       generatedMeetLink = calendarResult.meetLink || generatedMeetLink;
-      console.log(`✅ New Google Meet link generated on edit: ${generatedMeetLink}`);
+      console.log(`✅ New Google Meet link generated on edit (schedule/lecturer change): ${generatedMeetLink}`);
+
+      updateData.MeetingLink = generatedMeetLink;
+      updateData.CalendarEventId = calendarEventId;
+
+      // Re-invite instructor & enrolled students to the new event
+      if (calendarEventId && calendarEventId !== course.CalendarEventId) {
+        try {
+          const instructorRecord = await prisma.student.findFirst({
+            where: { Name: effectiveInstructor, Role: 'instructor' }
+          });
+          if (instructorRecord?.Email) {
+            await addStudentToClass(calendarEventId, instructorRecord.Email);
+          }
+
+          const enrollments = await prisma.enrollments.findMany({
+            where: { Subject_ID: course.id }
+          });
+          for (const enrollment of enrollments) {
+            if (enrollment.Student_ID) {
+              const studentRec = await prisma.student.findUnique({
+                where: { Student_ID: enrollment.Student_ID }
+              });
+              if (studentRec?.Email) {
+                await addStudentToClass(calendarEventId, studentRec.Email);
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.error('⚠️ Failed to sync attendees to new event:', syncErr.message);
+        }
+      }
     } catch (error) {
       console.error('⚠️ Calendar integration failed during update:', error.message);
+      if (meetingLink !== undefined) {
+        updateData.MeetingLink = meetingLink;
+      }
     }
-  }
-
-  if (startTime && endTime) {
-    updateData.MeetingLink = generatedMeetLink;
-    updateData.CalendarEventId = calendarEventId;
   } else if (meetingLink !== undefined) {
     updateData.MeetingLink = meetingLink;
   }
